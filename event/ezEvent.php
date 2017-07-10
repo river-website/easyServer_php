@@ -1,5 +1,6 @@
 <?php
 
+// 事件分发类
 class ezEvent{
 
 	const read = 0;
@@ -16,68 +17,72 @@ class ezEvent{
 	public function __construct(){
 
 	}
-
+    // 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){
+	    $fd_key = (int)$fd;
 		switch ($status) {
 			case self::read:
-				$this->allEvent[$fd][$status] = $func;
-				$this->readEvent[$fd] = $fd;
+				$this->allEvent[$fd_key][$status] = $func;
+				$this->readEvent[$fd_key] = $fd;
 				break;
 			case self::write:
-				$this->allEvent[$fd][$status] = $func;
-				$this->writeEvent[$fd] = $fd;
+				$this->allEvent[$fd_key][$status] = $func;
+				$this->writeEvent[$fd_key] = $fd;
 				break;
 			case self::except:
-				$this->allEvent[$fd][$status] = $func;
-				$this->exceptEvent[$fd] = $fd;
+				$this->allEvent[$fd_key][$status] = $func;
+				$this->exceptEvent[$fd_key] = $fd;
 				break;
 			case self::error:
-				$this->allEvent[$fd][$status] = $func;
-				$this->errorEvent[$fd] = $fd;
+				$this->allEvent[$fd_key][$status] = $func;
+				$this->errorEvent[$fd_key] = $fd;
 				break;
 			default:
 				break;
 		}
 	}
-
+    // 删除一个监视资源，状态及事件处理
 	public function del($fd,$status){
-		if(!empty($this->allEvent[$fd][$status]))
-			unset($this->allEvent[$fd][$status]);
+	    $fd_key = (int)$fd;
+		if(!empty($this->allEvent[$fd_key][$status]))
+			unset($this->allEvent[$fd_key][$status]);
 		switch ($status) {
 			case self::read:
-				if(!empty($this->readEvent[$fd]))
-					unset($this->readEvent[$fd]);
+				if(!empty($this->readEvent[$fd_key]))
+					unset($this->readEvent[$fd_key]);
 				break;
 			case self::write:
-				if(!empty($this->writeEvent[$fd]))
-					unset($this->writeEvent[$fd]);
+				if(!empty($this->writeEvent[$fd_key]))
+					unset($this->writeEvent[$fd_key]);
 				break;
 			case self::except:
-				if(!empty($this->exceptEvent[$fd]))
-					unset($this->exceptEvent[$fd]);
+				if(!empty($this->exceptEvent[$fd_key]))
+					unset($this->exceptEvent[$fd_key]);
 				break;
 			case self::error:
-				if(!empty($this->errorEvent[$fd]))
-					unset($this->errorEvent[$fd]);
+				if(!empty($this->errorEvent[$fd_key]))
+					unset($this->errorEvent[$fd_key]);
 				break;
 			default:
 				break;
 		}
 	}
-
+    // 开始监视资源
 	public function loop(){
 		while(true){
 			$read = $this->readEvent;
 			$write = $this->writeEvent;
 			$error = $this->errorEvent;
-			$ret = @stream_select($read,$write, $err, 0, 10);
+			$ret = @stream_select($read,$write, $error, 0, 10);
 			if(!$ret) continue;
 			foreach ($read as $fd) {
-				$ev = $this->allEvent[$fd][self::read];
+			    $fd_key = (int)$fd;
+				$ev = $this->allEvent[$fd_key][self::read];
 				call_user_func($ev,$fd);
 			}
 			foreach ($write as $fd) {
-				$ev = $this->allEvent[$fd][self::write];
+			    $fd_key = (int)$fd;
+                $ev = $this->allEvent[$fd_key][self::write];
 				call_user_func_array($ev, $fd);
 			}
 		}
