@@ -14,6 +14,8 @@ class ezEvent{
 	private $exceptEvent = array();
 	private $errorEvent = array();
 
+	public $thirdEvents = array();
+
 	public function __construct(){
 
 	}
@@ -70,10 +72,15 @@ class ezEvent{
     // 开始监视资源
 	public function loop(){
 		while(true){
+		    // 第三方循环事件，如db连接，查询
+		    foreach ($this->thirdEvents as $thirdEvent)
+		        $thirdEvent->loop();
+
+
 			$read = $this->readEvent;
 			$write = $this->writeEvent;
 			$error = $this->errorEvent;
-			$ret = @stream_select($read,$write, $error, 0, 10);
+			$ret = @stream_select($read,$write, $error, 0, 0.1);
 			if(!$ret) continue;
 			foreach ($read as $fd) {
 			    $fd_key = (int)$fd;

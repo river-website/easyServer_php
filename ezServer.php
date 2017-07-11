@@ -10,6 +10,7 @@ class ezServer{
 	private $os = null;
 
 	protected $event = null;
+	protected $thirdEvents = array();
 	protected $protocol = null;
 	
 	public $onMessage = null;
@@ -44,6 +45,7 @@ class ezServer{
             stream_set_blocking($this->serverSocket, 0);
             echo "server socket is->" . $this->serverSocket . "\n";
             $this->event = new ezEvent();
+            $this->event->thirdEvents = $this->thirdEvents;
             $this->event->add($this->serverSocket, ezEvent::read, array($this, 'onAccept'));
             $this->event->loop();
         }

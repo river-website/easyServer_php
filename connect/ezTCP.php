@@ -7,6 +7,7 @@ class ezTCP{
 	private $event = null;
 	private $protocol = null;
 	private $sendBuffer = null;
+	public $sendStatus = true;
 	public function __construct($socket,$remote_address){
 		$this->socket = $socket;
 		$this->remote_address = $remote_address;
@@ -56,22 +57,34 @@ class ezTCP{
 	public function onWrite($socket){
 		if(!empty($this->sendBuffer)){
 			$data = $this->sendBuffer;
+            $this->sendBuffer = '';
 			$len = @fwrite($socket,$data);
 			if($len <= 0){
 				if (!is_resource($this->socket) || feof($this->socket)) 
 					$this->destroy();
 				else $this->sendBuffer = $data;
 				return;
-			}else if($len != strlen($data))$this->sendBuffer = substr($data, $len);
+			}else if($len != strlen($data)) {
+                $this->sendBuffer = substr($data, $len);
+                return;
+            }
 		}
 		$this->event->del($this->socket,ezEvent::write);
 	}
 	// 发送数据
 	public function send($data){
+	    if(!$this->sendStatus){
+	        $this->sendBuffer .= $data;
+	        return;
+        }
+        $data = $this->sendBuffer.$data;
 	    if($this->protocol)$data = $this->protocol->encode($data,$this);
 		$len = @fwrite($this->socket,$data);
 		echo 'send data len:'.$len."\n";
-		if($len == strlen($data)) return true;
+		if($len == strlen($data)) {
+            $this->sendBuffer = '';
+            return true;
+        }
 		else if($len>0) $this->sendBuffer = substr($data, $len);
 		else{
 			if (!is_resource($this->socket) || feof($this->socket)) {

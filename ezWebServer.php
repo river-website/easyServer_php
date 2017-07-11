@@ -5,11 +5,13 @@ require 'connect/ezAsynDB.php';
 class ezWebServer extends ezServer {
 	private $serverRoot = array();
     public $asynDB = null;
+    public $curConn = null;
 	public function __construct($host){
 		parent::__construct('tcp://'.$host);
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
 		$this->asynDB = new ezAsynDB($this->event);
+		$this->thirdEvents[] = $this->asynDB;
 	}
 	// 设置域名和网站目录
 	public function setWeb($webSite,$path){
@@ -61,6 +63,7 @@ class ezWebServer extends ezServer {
 
             // Request php file.
             if ($workerman_file_extension === 'php') {
+                $this->curConn = $connection;
                 $workerman_cwd = getcwd();
                 chdir($workerman_root_dir);
                 ini_set('display_errors', 'off');

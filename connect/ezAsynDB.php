@@ -14,15 +14,16 @@ class ezAsynDB{
 
     public function add($sqlCon){
         if(count($this->allCon)<$this->connectCount){
-            var_dump($sqlCon);
-            $conKey = (int)$sqlCon;
-            $this->allCon[$conKey] = $sqlCon;
+            $conKey = $this->toUuid($sqlCon);
+            $this->allCon[$conKey] = null;
             $this->freeCon[$conKey] = $sqlCon;
-            $this->event->add($sqlCon,ezEvent::read,array($this,'onMessage'));
         }
     }
+    private function toUuid($sqlCon){
+        return $sqlCon->client_info;
+    }
     public function del($sqlCon){
-        $conKey = (int)$sqlCon;
+        $conKey = $this->toUuid($sqlCon);
         if(!empty($this->busyCon[$conKey]))
             return false;
         if(!empty($this->allCon[$conKey]))
@@ -32,17 +33,69 @@ class ezAsynDB{
         $this->event->del($sqlCon,ezEvent::read);
         return true;
     }
-    public function excute($sql,$asyn = true){
+    public function excute($sql,$func = null){
         if(count($this->freeCon) == 0)
-            $this->sqlQue[] = $sql;
+            $this->sqlQue[] = array($sql,$func);
         else{
             $sqlCon = array_shift($this->freeCon);
             $row = mysqli_query($sqlCon, $sql,MYSQLI_ASYNC);
-            $this->busyCon[] = $sqlCon;
+            $conKey = $this->toUuid($sqlCon);
+            $this->busyCon[$conKey] = $sqlCon;
+            $this->allCon[$conKey] = array($func,$GLOBALS['server']->curConn);
         }
     }
-    private function onMessage($con){
-        $res = @mysqli_reap_async_query($con);
-        return $res->fetch_all(MYSQLI_ASSOC);
+    private function excueQue(){
+        if(count($this->sqlQue) > 0){
+            while(count($this->freeCon)>0) {
+                $sql = array_shift($this->sqlQue);
+                $this->excute($sql[0],$sql[1]);
+            }
+        }
+    }
+
+    public function loop(){
+        while(true) {
+            if(count($this->busyCon) == 0)return;
+            $read = $errors = $reject = $this->busyCon;
+            $re = mysqli_poll($read, $errors, $reject, 0.02);
+            if (false === $re) {
+                die('mysqli_poll failed');
+            } elseif ($re < 1) {
+//                continue;
+                return;
+            }
+
+            foreach ($read as $link) {
+                $conKey = $this->toUuid($link);
+                $sql_result = $link->reap_async_query();
+                if (is_object($sql_result)) {
+                    ob_start();
+                    call_user_func_array($this->allCon[$conKey][0],array($sql_result->fetch_all(MYSQLI_ASSOC)));
+                    $content = ob_get_clean();
+                    $this->allCon[$conKey][1]->sendStatus = true;
+                    $this->allCon[$conKey][1]->send($content);
+                } else {
+                    echo $link->error, "\n";
+                }
+                unset($this->busyCon[$conKey]);
+                $this->freeCon[$conKey] = $link;
+            }
+
+            foreach ($errors as $link) {
+                echo $link->error, "1\n";
+                $conKey = $this->toUuid($link);
+                unset($this->busyCon[$conKey]);
+                $this->freeCon[$conKey] = $link;
+            }
+
+            foreach ($reject as $link) {
+                printf("server is busy, client was rejected.\n", $link->connect_error, $link->error);
+                $conKey = $this->toUuid($link);
+                unset($this->busyCon[$conKey]);
+                $this->freeCon[$conKey] = $link;
+            }
+            $this->excueQue();
+            return;
+        }
     }
 }
