@@ -36,14 +36,15 @@ class ezServer{
 	}
 	public function start(){
 	    $this->init();
-        if($this->os == 'Windows') {
+        // if($this->os == 'Windows') {
+	    {
             $this->serverSocket = stream_socket_server($this->host);
             if (!$this->serverSocket) {
                 echo 'create socket fail!';
                 exit();
             }
             stream_set_blocking($this->serverSocket, 0);
-            echo "server socket is->" . $this->serverSocket . "\n";
+            echo "server socket -> " . $this->serverSocket . "\n";
             $this->event = new ezEvent();
             $this->event->thirdEvents = $this->thirdEvents;
             $this->event->add($this->serverSocket, ezEvent::read, array($this, 'onAccept'));
@@ -52,16 +53,16 @@ class ezServer{
     }
 	// 当收到连接时
 	public function onAccept($socket){
+		echo "connect socket -> ".$new_socket."\n";
 		$new_socket = @stream_socket_accept($socket, 0, $remote_address);
 		if (!$new_socket) 
 			return;
-		echo $new_socket." connect in!\n";
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);
 		$tcp->setEvent($this->event);
 		$tcp->setOnMessage($this->onMessage);
-        $tcp->setProtocol($this->protocol);
+		$tcp->setProtocol($this->protocol);
 		$this->event->add($new_socket, ezEvent::read, array($tcp, 'onRead'));
 	}
 }
