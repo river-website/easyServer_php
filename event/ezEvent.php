@@ -13,24 +13,46 @@ class ezEvent{
 	private $writeEvent = array();
 	private $exceptEvent = array();
 	private $errorEvent = array();
-    private $os = null;
+
+	private $os = null;
+
+	public $add = null;
+	public $del = null;
+	public $loop = null;
 	public $thirdEvents = array();
 
 	public function __construct($os){
-        $this->os = $os;
-        $this->init();
+        		$this->os = $os;
+        		$this->init();
 	}
 	private function init(){
-	    if($this->os == 'Windows'){
+		if(extension_loaded('libevent')){
+			$this->base = event_base_new();
+			$this->add = $this->libeventAdd;
+	    		$this->del = $this->libeventDel;
+	    		$this->loop = $this->libeventLoop;
+		}else{
+			$this->add = array($this,'selectAdd');
+	    		$this->del = $this->selectDel;
+	    		$this->loop = $this->selectLoop;
 
-        }
-        $base = event_base_new();
-        $event = event_new();
-        event_set($event, self::$socket , EV_READ | EV_PERSIST, 'epoll::ev_accept', $base);
-        event_base_set($event, $base);
-        event_add($event);
-        event_base_loop($base);
-    }
+	    	}
+	}
+
+	public function libeventAdd($fd, $status, $func,$arg = null){
+		$event = event_new();
+		event_set($event, $fd , $status, $func);
+		event_base_set($event, $this->base);
+		event_add($event);
+
+	}
+	public function libevenDel($fd,$status){
+
+	}
+	public function libeventLoop(){
+		event_base_loop($this->base);
+	}
+
     // 增加一个监视资源，状态及事件处理
 	public function selectAdd($fd, $status, $func,$arg = null){
 	    $fd_key = (int)$fd;
