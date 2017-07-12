@@ -38,8 +38,7 @@ class ezWebServer extends ezServer {
 
         $workerman_root_dir = isset($this->serverRoot[$_SERVER['SERVER_NAME']]) ? $this->serverRoot[$_SERVER['SERVER_NAME']] : current($this->serverRoot);
 
-        $workerman_file = "$workerman_root_dir/$workerman_path";
-        echo "\n".$workerman_file."\n";
+        $workerman_file = "$workerman_root_dir$workerman_path";
         if ($workerman_file_extension === 'php' && !is_file($workerman_file)) {
             $workerman_file = "$workerman_root_dir/index.php";
             if (!is_file($workerman_file)) {

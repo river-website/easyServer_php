@@ -13,14 +13,26 @@ class ezEvent{
 	private $writeEvent = array();
 	private $exceptEvent = array();
 	private $errorEvent = array();
-
+    private $os = null;
 	public $thirdEvents = array();
 
-	public function __construct(){
-
+	public function __construct($os){
+        $this->os = $os;
+        $this->init();
 	}
+	private function init(){
+	    if($this->os == 'Windows'){
+
+        }
+        $base = event_base_new();
+        $event = event_new();
+        event_set($event, self::$socket , EV_READ | EV_PERSIST, 'epoll::ev_accept', $base);
+        event_base_set($event, $base);
+        event_add($event);
+        event_base_loop($base);
+    }
     // 增加一个监视资源，状态及事件处理
-	public function add($fd, $status, $func,$arg = null){
+	public function selectAdd($fd, $status, $func,$arg = null){
 	    $fd_key = (int)$fd;
 		switch ($status) {
 			case self::read:
@@ -44,7 +56,7 @@ class ezEvent{
 		}
 	}
     // 删除一个监视资源，状态及事件处理
-	public function del($fd,$status){
+	public function selectDel($fd,$status){
 	    $fd_key = (int)$fd;
 		if(!empty($this->allEvent[$fd_key][$status]))
 			unset($this->allEvent[$fd_key][$status]);
@@ -70,12 +82,12 @@ class ezEvent{
 		}
 	}
     // 开始监视资源
-	public function loop(){
+	public function selectLoop(){
+	    echo "start event loop\n";
 		while(true){
 		    // 第三方循环事件，如db连接，查询
 		    foreach ($this->thirdEvents as $thirdEvent)
 		        $thirdEvent->loop();
-
 
 			$read = $this->readEvent;
 			$write = $this->writeEvent;

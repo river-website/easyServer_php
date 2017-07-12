@@ -80,7 +80,6 @@ class ezTCP{
         $data = $this->sendBuffer.$data;
 	    if($this->protocol)$data = $this->protocol->encode($data,$this);
 		$len = @fwrite($this->socket,$data);
-		echo 'send data len:'.$len."\n";
 		if($len == strlen($data)) {
             $this->sendBuffer = '';
             return true;
@@ -110,11 +109,11 @@ class ezTCP{
 	// 析构当前连接
 	public function destroy()
 	{
-		echo $this->socket." destroy!\n";
 		// Remove event listener.
 		$this->event->del($this->socket, ezEvent::read);
 		$this->event->del($this->socket, ezEvent::write);
 		// Close socket.
 		@fclose($this->socket);
+        echo "destroy socket -> ".$this->socket."\n";
 	}
 }

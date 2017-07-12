@@ -2,8 +2,8 @@
 require 'ezServer.php';
 require 'ezWebServer.php';
 
-echo "start\n";
+echo "start easy server!\n";
 
-$server = new ezWebServer('39.108.148.255:80');
-$server->setWeb('http://localhost','D:/phpStudy/WWW/easyPHP');
+$server = new ezWebServer('0.0.0.0:80');
+$server->setWeb('http://localhost','/www/wwwroot/easyPHP');
 $server->start();
