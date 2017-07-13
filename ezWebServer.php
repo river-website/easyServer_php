@@ -46,7 +46,7 @@ class ezWebServer extends ezServer {
                 $workerman_file_extension = 'html';
             }
         }
-
+		echo "visit page -> $workerman_file\n";
         // File exsits.
         if (is_file($workerman_file)) {
             // Security check.

@@ -3,10 +3,11 @@
 // 事件分发类
 class ezEvent{
 
-	const read = 0;
-	const write = 1;
+	const read = 2;
+	const write = 4;
 	const except = 2;
 	const error = 3;
+	const time = 1;
 
 	private $allEvent = array();
 	private $readEvent = array();
@@ -16,45 +17,102 @@ class ezEvent{
 
 	private $os = null;
 
-	public $add = null;
-	public $del = null;
-	public $loop = null;
+	public $addFunc = null;
+	public $delFunc = null;
+	public $loopFunc = null;
+	public $base = null;
 	public $thirdEvents = array();
 
 	public function __construct($os){
-        		$this->os = $os;
-        		$this->init();
+		$this->os = $os;
+		$this->init();
 	}
 	private function init(){
 		if(extension_loaded('libevent')){
-			$this->base = event_base_new();
-			$this->add = $this->libeventAdd;
-	    		$this->del = $this->libeventDel;
-	    		$this->loop = $this->libeventLoop;
+            $this->base = event_base_new();
+            $this->addFunc = 'libeventAdd';
+            $this->delFunc = 'libeventDel';
+            $this->loopFunc = 'libeventLoop';
+			$this->libeventAdd(100,ezEvent::time,array($this,'libeventTime'));
 		}else{
-			$this->add = array($this,'selectAdd');
-	    		$this->del = $this->selectDel;
-	    		$this->loop = $this->selectLoop;
-
-	    	}
+			$this->addFunc = 'selectAdd';
+            $this->delFunc = 'selectDel';
+            $this->loopFunc = 'selectLoop';
+        }
 	}
-
-	public function libeventAdd($fd, $status, $func,$arg = null){
-		$event = event_new();
-		event_set($event, $fd , $status, $func);
-		event_base_set($event, $this->base);
-		event_add($event);
-
+    // 对外接口 增加一个监视资源，状态及事件处理
+	public function add($fd, $status, $func,$arg = null){
+	    $funcName = $this->addFunc;
+	    $this->$funcName($fd, $status, $func,$arg);
 	}
-	public function libevenDel($fd,$status){
+    // 对外接口 删除一个监视资源，状态及事件处理
+    public function del($fd,$status){
+        $funcName = $this->delFunc;
+        $this->$funcName($fd,$status);
+    }
+    // 对外接口 开始监视资源
+    public function loop(){
+        $funcName = $this->loopFunc;
+        $this->$funcName();
+    }
 
+    // 增加一个监视资源，状态及事件处理
+	private function libeventAdd($fd, $status, $func,$arg = null){
+    	switch ($status){
+			case ezEvent::time: {
+				$event = event_new();
+				if (!event_set($event, 0, EV_TIMEOUT, $func, (int)$event))
+					return false;
+				if (!event_base_set($event, $this->base))
+					return false;
+				if (!event_add($event,$fd))
+					return false;
+				$this->allEvent[(int)$event][$status] = $event;
+				return (int)$event;
+			}
+				break;
+			case ezEvent::read:
+			case ezEvent::write: {
+				$event = event_new();
+				if (!event_set($event, $fd, $status | EV_PERSIST, $func, array($fd, $arg)))
+					return false;
+				if (!event_base_set($event, $this->base))
+					return false;
+				if (!event_add($event))
+					return false;
+				$this->allEvent[(int)$fd][$status] = $event;
+				echo "add event fd -> $fd; event -> $event\n";
+			}
+				break;
+		}
+
+
+		return true;
 	}
-	public function libeventLoop(){
+	// 删除一个监视资源，状态及事件处理
+    private function libeventDel($fd,$status){
+		if(!empty($this->allEvent[(int)$fd][$status])) {
+			$ev = $this->allEvent[(int)$fd][$status];
+			event_del($ev);
+			unset($this->allEvent[(int)$fd][$status]);
+		}
+	}
+    // 开始监视资源
+	private function libeventLoop(){
+		// 第三方循环事件，如db连接，查询
+		foreach ($this->thirdEvents as $thirdEvent)
+			$thirdEvent->loop();
 		event_base_loop($this->base);
 	}
 
+	public function libeventTime(){
+		echo "lib event time tick\n";
+		event_base_loopbreak($this->base);
+		$this->loop();
+	}
+
     // 增加一个监视资源，状态及事件处理
-	public function selectAdd($fd, $status, $func,$arg = null){
+	private function selectAdd($fd, $status, $func,$arg = null){
 	    $fd_key = (int)$fd;
 		switch ($status) {
 			case self::read:
@@ -78,7 +136,7 @@ class ezEvent{
 		}
 	}
     // 删除一个监视资源，状态及事件处理
-	public function selectDel($fd,$status){
+	private function selectDel($fd,$status){
 	    $fd_key = (int)$fd;
 		if(!empty($this->allEvent[$fd_key][$status]))
 			unset($this->allEvent[$fd_key][$status]);
@@ -104,8 +162,7 @@ class ezEvent{
 		}
 	}
     // 开始监视资源
-	public function selectLoop(){
-	    echo "start event loop\n";
+	private function selectLoop(){
 		while(true){
 		    // 第三方循环事件，如db连接，查询
 		    foreach ($this->thirdEvents as $thirdEvent)
