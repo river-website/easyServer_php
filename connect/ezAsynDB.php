@@ -14,7 +14,6 @@ class ezAsynDB{
 
     public function add($sqlCon){
         if(count($this->allCon)<$this->connectCount){
-            echo "add mysql connect -> ".print_r($sqlCon,true)."\n";
             $conKey = $this->toUuid($sqlCon);
             $this->allCon[$conKey] = null;
             $this->freeCon[$conKey] = $sqlCon;

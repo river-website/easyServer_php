@@ -61,13 +61,14 @@ class ezEvent{
     	switch ($status){
 			case ezEvent::time: {
 				$event = event_new();
-				if (!event_set($event, 0, EV_TIMEOUT, $func, (int)$event))
+				if (!event_set($event, 0, EV_TIMEOUT, $func,array($event,$fd)))
 					return false;
 				if (!event_base_set($event, $this->base))
 					return false;
 				if (!event_add($event,$fd))
 					return false;
 				$this->allEvent[(int)$event][$status] = $event;
+				echo "add event fd -> $fd; event -> $event\n";
 				return (int)$event;
 			}
 				break;
@@ -85,8 +86,6 @@ class ezEvent{
 			}
 				break;
 		}
-
-
 		return true;
 	}
 	// 删除一个监视资源，状态及事件处理
@@ -99,16 +98,14 @@ class ezEvent{
 	}
     // 开始监视资源
 	private function libeventLoop(){
-		// 第三方循环事件，如db连接，查询
-		foreach ($this->thirdEvents as $thirdEvent)
-			$thirdEvent->loop();
 		event_base_loop($this->base);
 	}
 
-	public function libeventTime(){
-		echo "lib event time tick\n";
-		event_base_loopbreak($this->base);
-		$this->loop();
+	public function libeventTime($_null1, $_null2, $data){
+		// 第三方循环事件，如db连接，查询
+		foreach ($this->thirdEvents as $thirdEvent)
+			$thirdEvent->loop();
+		event_add($data[0],$data[1]);
 	}
 
     // 增加一个监视资源，状态及事件处理
