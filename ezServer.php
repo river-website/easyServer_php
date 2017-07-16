@@ -12,7 +12,7 @@ class ezServer{
 	protected $event = null;
 	protected $thirdEvents = array();
 	protected $protocol = null;
-
+    private $queSccket = null;
 	public $processCount = 4;
 	private $pids = array();
 	public $onMessage = null;
@@ -65,8 +65,24 @@ class ezServer{
 		$this->monitorWorkers();
     }
     private function forkMysql(){
+        $pid = pcntl_fork();
+        if($pid == 0) {
+            $this->queSocket = stream_socket_server('tcp://0.0.0.0:3307');
+            if (!$this->queSocket) {
+                echo "error -> create mysql socket fail!\n";
+                exit();
+            }
+            stream_set_blocking($this->queSocket, 0);
+            echo "server socket -> " . $this->queSocket . "\n";
+        }else{
+            $this->pids[] = $pid;
+        }
 
-	}
+    }
+    private function pubMem(){
+
+    }
+
     private function monitorWorkers(){
 		echo "start monitor workers\n";
 		while(1){

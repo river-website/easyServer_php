@@ -1,6 +1,7 @@
 <?php
 require 'protocol/ezHTTP.php';
 require 'connect/ezAsynDB.php';
+require 'ezQue.php';
 
 class ezWebServer extends ezServer {
 	private $serverRoot = array();
@@ -11,8 +12,9 @@ class ezWebServer extends ezServer {
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
 		$this->asynDB = new ezAsynDB($this->event);
-		$this->thirdEvents[] = $this->asynDB;
+//		$this->thirdEvents[] = $this->asynDB;
 	}
+
 	// 设置域名和网站目录
 	public function setWeb($webSite,$path){
 		$this->serverRoot[$webSite] = $path;

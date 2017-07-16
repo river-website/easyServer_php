@@ -1,18 +1,38 @@
 <?php
 
 class ezAsynDB{
+    const queDBFree = 0;
+    const queDBSql = 1;
+
     private $event = null;
     private $connectCount = 20;
     private $allCon = array();
     private $busyCon = array();
     private $freeCon = array();
     private $sqlQue = array();
-
+    private $que = null;
+    static public $pubName = 'mysqlConnectList';
     public function __construct($event){
         $this->event = $event;
+        $this->que = new ezQue('db');
+
     }
 
+    static public function getInterface(){
+        if(is_file(self::pubName)){
+            $fp = fopen(self::pubName,'w+');
+
+        }
+    }
+    static public function createInterface(){
+        $DB = new ezAsynDB();
+        file_put_contents(‘mysqlConnect’,serialize($DB));
+    }
     public function add($sqlCon){
+        if($this->que->getCount()<$this->connectCount){
+            $this->que->sendMsg($sqlCon);
+        }
+        return;
         if(count($this->allCon)<$this->connectCount){
             $conKey = $this->toUuid($sqlCon);
             $this->allCon[$conKey] = null;
@@ -35,6 +55,12 @@ class ezAsynDB{
         return true;
     }
     public function excute($sql,$func = null){
+        $sqlCon = $this->que->getMsg();
+        $row = mysqli_query($sqlCon,$sql);
+        return $row->fetch_all(MYSQLI_ASSOC);
+
+
+        return;
         if(count($this->freeCon) == 0)
             $this->sqlQue[] = array($sql,$func);
         else{
