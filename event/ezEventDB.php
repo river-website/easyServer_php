@@ -1,6 +1,6 @@
 <?php
 
-class ezAsynDB{
+class ezEventDB{
     const queDBFree = 0;
     const queDBSql = 1;
 

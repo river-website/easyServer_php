@@ -1,7 +1,7 @@
 <?php
 require 'protocol/ezHTTP.php';
-require 'connect/ezAsynDB.php';
-require 'ezQue.php';
+require 'event/ezEventDB.php';
+require 'com/ezQue.php';
 
 class ezWebServer extends ezServer {
 	private $serverRoot = array();
@@ -11,7 +11,7 @@ class ezWebServer extends ezServer {
 		parent::__construct('tcp://'.$host);
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
-		$this->asynDB = new ezAsynDB($this->event);
+		$this->asynDB = new ezEventDB($this->event);
 //		$this->thirdEvents[] = $this->asynDB;
 	}
 
