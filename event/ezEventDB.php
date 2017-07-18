@@ -1,8 +1,8 @@
 <?php
 
 class ezEventDB{
-    const queDBFree = 0;
-    const queDBSql = 1;
+    const queDBFree = 1;
+    const queDBSql = 2;
 
     private $event = null;
     private $connectCount = 20;
@@ -30,7 +30,7 @@ class ezEventDB{
     }
     public function add($sqlCon){
         if($this->que->getCount()<$this->connectCount){
-            $this->que->sendMsg($sqlCon);
+            $this->que->sendMsg(ezEventDB::queDBFree,$sqlCon);
         }
         return;
         if(count($this->allCon)<$this->connectCount){
@@ -55,7 +55,7 @@ class ezEventDB{
         return true;
     }
     public function excute($sql,$func = null){
-        $sqlCon = $this->que->getMsg();
+        $sqlCon = $this->que->getMsg(ezEventDB::queDBFree);
         $row = mysqli_query($sqlCon,$sql);
         return $row->fetch_all(MYSQLI_ASSOC);
 

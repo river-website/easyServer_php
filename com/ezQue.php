@@ -15,11 +15,20 @@ class ezQue{
         $key = ftok(__FILE__,'R');
         $this->que = msg_get_queue($key,$perms);
     }
-    public function snedMsg($msg,$type = 0){
-        msg_send($this->que,$type,$msg);
+    public function sendMsg($type,$data){
+    	var_dump($data);
+    	echo "\n";
+    	$a = json_encode($data);
+    	echo $a."\n";
+    	return;
+    	var_dump(serialize($data));
+		msg_send($this->que,$type,serialize($data),false);
+
+		msg_receive($this->que, 0, $message_type, 8196, $message, false, MSG_IPC_NOWAIT);
+//		var_dump(unserialize($message));
     }
-    public function getMsg(){
-        msg_receive($this->que, 0, $message_type, 1024, $message, false, MSG_IPC_NOWAIT);
+    public function getMsg($type){
+        msg_receive($this->que, $type, $message_type, 1024, $message, true, MSG_IPC_NOWAIT);
         return $message;
     }
     public function getCount(){
