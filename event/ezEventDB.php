@@ -1,22 +1,39 @@
 <?php
 
 class ezEventDB{
-    const queDBFree = 1;
-    const queDBSql = 2;
+
 
     private $event = null;
-    private $connectCount = 20;
+    private $connectCount = 10;
     private $allCon = array();
     private $busyCon = array();
     private $freeCon = array();
     private $sqlQue = array();
     private $que = null;
+    private $conf = null;
     static public $pubName = 'mysqlConnectList';
+
     public function __construct($event){
         $this->event = $event;
         $this->que = new ezQue('db');
-
+		$this->conf = array(
+			'host' => '127.0.0.1',
+			'user' => 'root',
+			'password' => 'root',
+			'dataBase' => 'test',
+			'port' => 3306
+		);
+		$this->createConnectPool();
     }
+    public function createConnectPool(){
+    	for($i=0;$i<$this->connectCount;$i++){
+			$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
+			if (!$con)
+				throw new Exception(mysqli_error());
+			$this->allCon[$i] = $con;
+			$this->que->sendMsg(ezEventDB::queDBFree,$i);
+		}
+	}
 
     static public function getInterface(){
         if(is_file(self::pubName)){
@@ -29,9 +46,9 @@ class ezEventDB{
         file_put_contents(‘mysqlConnect’,serialize($DB));
     }
     public function add($sqlCon){
-        if($this->que->getCount()<$this->connectCount){
-            $this->que->sendMsg(ezEventDB::queDBFree,$sqlCon);
-        }
+//        if($this->que->getCount()<$this->connectCount){
+//            $this->que->sendMsg(ezEventDB::queDBFree,$sqlCon);
+//        }
         return;
         if(count($this->allCon)<$this->connectCount){
             $conKey = $this->toUuid($sqlCon);
@@ -56,7 +73,7 @@ class ezEventDB{
     }
     public function excute($sql,$func = null){
         $sqlCon = $this->que->getMsg(ezEventDB::queDBFree);
-        $row = mysqli_query($sqlCon,$sql);
+        $row = mysqli_query($this->allCon[$sqlCon],$sql);
         return $row->fetch_all(MYSQLI_ASSOC);
 
 

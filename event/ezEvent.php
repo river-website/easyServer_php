@@ -3,17 +3,18 @@
 // 事件分发类
 class ezEvent{
 
-	const read = 2;
-	const write = 4;
-	const except = 2;
-	const error = 3;
-	const time = 1;
+	const eventTime 		= 1;
+	const eventRead 		= 2;
+	const eventWrite 		= 4;
+	const eventExcept 		= 2;
+	const eventError 		= 3;
+	const eventTimeOnce		= 4;
 
-	private $allEvent = array();
-	private $readEvent = array();
-	private $writeEvent = array();
-	private $exceptEvent = array();
-	private $errorEvent = array();
+	private $allEvent 		= array();
+	private $readEvent 	= array();
+	private $writeEvent 	= array();
+	private $exceptEvent 	= array();
+	private $errorEvent 	= array();
 
 	private $os = null;
 
