@@ -2,20 +2,22 @@
 
 class ezEventDB{
 
+	const DBSyn = 0;
+	const DBAsyn = 1;
 
-    private $event = null;
-    private $connectCount = 10;
-    private $allCon = array();
+	private $que = null;
+	private $maxConnect = 10;
+	private $conf = null;
+	private $allCon = array();
+
+	public $model = 0;
+
     private $busyCon = array();
     private $freeCon = array();
     private $sqlQue = array();
-    private $que = null;
-    private $conf = null;
-    static public $pubName = 'mysqlConnectList';
 
-    public function __construct($event){
-        $this->event = $event;
-        $this->que = new ezQue('db');
+    public function __construct(){
+        $this->que = new ezQue();
 		$this->conf = array(
 			'host' => '127.0.0.1',
 			'user' => 'root',
@@ -25,26 +27,15 @@ class ezEventDB{
 		);
 		$this->createConnectPool();
     }
-    public function createConnectPool(){
-    	for($i=0;$i<$this->connectCount;$i++){
+    private function createConnectPool(){
+    	for($id=0;$id<$this->maxConnect;$id++){
 			$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
-			if (!$con)
-				throw new Exception(mysqli_error());
-			$this->allCon[$i] = $con;
-			$this->que->sendMsg(ezEventDB::queDBFree,$i);
+			if (!$con)throw new Exception(mysqli_error());
+			$this->allCon[$id] = $con;
+			$this->que->sendMsg(ezEventDB::queDBFree,$id);
 		}
 	}
 
-    static public function getInterface(){
-        if(is_file(self::pubName)){
-            $fp = fopen(self::pubName,'w+');
-
-        }
-    }
-    static public function createInterface(){
-        $DB = new ezAsynDB();
-        file_put_contents(‘mysqlConnect’,serialize($DB));
-    }
     public function add($sqlCon){
 //        if($this->que->getCount()<$this->connectCount){
 //            $this->que->sendMsg(ezEventDB::queDBFree,$sqlCon);
@@ -72,9 +63,27 @@ class ezEventDB{
         return true;
     }
     public function excute($sql,$func = null){
-        $sqlCon = $this->que->getMsg(ezEventDB::queDBFree);
-        $row = mysqli_query($this->allCon[$sqlCon],$sql);
-        return $row->fetch_all(MYSQLI_ASSOC);
+    	if(!empty($func)){
+			$conId = $this->que->getMsg(ezEventDB::queDBFree,false);
+			if($conId == null){
+
+			}else{
+				if(empty($this->allCon[$conId])){
+					echo "get connect from que error,can not found connect id";
+					return false;
+				}
+				mysqli_query($this->allCon[$conId], $sql,MYSQLI_ASYNC);
+
+			}
+		}else{
+			$conId = $this->que->getMsg(ezEventDB::queDBFree);
+			if(empty($this->allCon[$conId])){
+				echo "get connect from que error,can not found connect id";
+				return false;
+			}
+			$row = mysqli_query($this->allCon[$conId], $sql);
+			return $row->fetch_all(MYSQLI_ASSOC);
+		}
 
 
         return;
@@ -97,11 +106,18 @@ class ezEventDB{
         }
     }
 
-    public function loop(){
+    public function loop($multi = true, $break = false, $time = 0.02){
         while(true) {
-            if(count($this->busyCon) == 0)return;
+        	if($multi){
+        		$this->que->getMsg(ezQue::queDBConBusy);
+			}
+
+            if(count($this->busyCon) == 0){
+            	if($break)return;
+            	continue;
+			}
             $read = $errors = $reject = $this->busyCon;
-            $re = mysqli_poll($read, $errors, $reject, 0.02);
+            $re = mysqli_poll($read, $errors, $reject, $time);
             if (false === $re) {
                 die('mysqli_poll failed');
             } elseif ($re < 1) {
