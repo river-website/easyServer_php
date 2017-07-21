@@ -13,8 +13,8 @@ class ezQue{
 
     private $que = null;
 
-    public function __construct($perms = 0666){
-        $key = ftok(__FILE__,'R');
+    public function __construct($path, $perms = 0666){
+        $key = ftok($path,'R');
         $this->que = msg_get_queue($key,$perms);
     }
     public function sendMsg($type,$data,$block = true){
