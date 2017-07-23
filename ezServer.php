@@ -12,7 +12,6 @@ class ezServer{
 	protected $event = null;
 	protected $thirdEvents = array();
 	protected $protocol = null;
-    private $queSocket = null;
 	public $processCount = 4;
 	private $pids = array();
 	public $onMessage = null;
@@ -48,14 +47,14 @@ class ezServer{
 	public function start(){
 	    $this->init();
         $this->createSocket();
-		$this->forkMysql();
+//		$this->forkMysql();
         for($i=0;$i<$this->processCount;$i++){
 			$pid = pcntl_fork();
 			if($pid == 0) {
 				$this->event = new ezEvent($this->os);
-				$this->event->thirdEvents = $this->thirdEvents;
-				$this->event->add($this->serverSocket, ezEvent::read, array($this, 'onAccept'));
-				$this->event->loop();
+				$this->event->setThirdEvents($this->thirdEvents);
+				$this->event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+                $this->event->loop();
 				echo "child pid exit event loop\n";
 			}else{
 				echo "child pid -> $pid\n";
@@ -67,28 +66,11 @@ class ezServer{
     private function forkMysql(){
         $pid = pcntl_fork();
         if($pid == 0) {
-            $this->queSocket = stream_socket_server('tcp://0.0.0.0:8888');
-            if (!$this->queSocket) {
-                echo "error -> create que socket fail!\n";
-                exit();
-            }
-            stream_set_blocking($this->queSocket, 0);
-            echo "que socket -> " . $this->queSocket . "\n";
-            $this->onMessage = array($this->asynDB,'onMessage');
-			$this->event = new ezEvent($this->os);
-//			$this->event->thirdEvents = $this->thirdEvents;
-			$this->event->add($this->queSocket, ezEvent::eventRead, array($this, 'onAccept'));
-			$this->event->loop();
-			echo "child pid exit event loop\n";
+            $this->eventDB->loop();
         }else{
             $this->pids[] = $pid;
         }
-
     }
-    private function pubMem(){
-
-    }
-
     private function monitorWorkers(){
 		echo "start monitor workers\n";
 		while(1){
@@ -107,6 +89,6 @@ class ezServer{
 		$tcp->setEvent($this->event);
 		$tcp->setOnMessage($this->onMessage);
 		$tcp->setProtocol($this->protocol);
-		$this->event->add($new_socket, ezEvent::read, array($tcp, 'onRead'));
+		$this->event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
 	}
 }

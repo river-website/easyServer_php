@@ -13,7 +13,6 @@ class ezEventLibEvent{
 	public function __construct(){
 		$this->base = event_base_new();
 	}
-
 	// 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func, $arg = null){
 		switch ($status){
@@ -29,6 +28,20 @@ class ezEventLibEvent{
 				return (int)$event;
 			}
 				break;
+            case ezEvent::eventSignal: {
+                $event = event_new();
+                if (!event_set($event, $fd, $status | EV_PERSIST, $func, null)) {
+                    return false;
+                }
+                if (!event_base_set($event, $this->base)) {
+                    return false;
+                }
+                if (!event_add($event)) {
+                    return false;
+                }
+                $this->allEvent[(int)$fd][$status] = $event;
+            }
+                break;
 			case ezEvent::eventRead:
 			case ezEvent::eventWrite: {
 				$event = event_new();
@@ -62,14 +75,7 @@ class ezEventLibEvent{
 				foreach ($thirdEvents as $thirdEvent)
 					$thirdEvent->loop();
 			}
-			event_base_loop($this->base);
+			event_base_loop($this->base,EVLOOP_NONBLOCK);
 		}
-	}
-
-	public function libeventTime($_null1, $_null2, $data){
-		// 第三方循环事件，如db连接，查询
-		foreach ($this->thirdEvents as $thirdEvent)
-			$thirdEvent->loop();
-		event_add($data[0],$data[1]);
 	}
 }

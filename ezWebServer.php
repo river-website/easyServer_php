@@ -5,14 +5,14 @@ require 'com/ezQue.php';
 
 class ezWebServer extends ezServer {
 	private $serverRoot = array();
-    public $asynDB = null;
+    public $eventDB = null;
     public $curConn = null;
 	public function __construct($host){
 		parent::__construct('tcp://'.$host);
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
-		$this->asynDB = new ezEventDB($this->event);
-//		$this->thirdEvents[] = $this->asynDB;
+		$this->eventDB = new ezEventDB($this);
+		$this->thirdEvents[] = $this->eventDB;
 	}
 
 	// 设置域名和网站目录

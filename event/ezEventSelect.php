@@ -9,7 +9,7 @@
 class ezEventSelect{
 
 	private $allEvent 		= array();
-	private $readEvent 	= array();
+	private $readEvent 	    = array();
 	private $writeEvent 	= array();
 	private $exceptEvent 	= array();
 
@@ -29,6 +29,15 @@ class ezEventSelect{
 				$this->allEvent[$fdKey][$status] = array($func,$arg);
 				$this->exceptEvent[$fdKey] = $fd;
 				break;
+            case ezEvent::eventSignal: {
+                // Windows not support signal.
+                if (DIRECTORY_SEPARATOR !== '/') {
+                    return false;
+                }
+//                $this->allEvent[(int)$fd][$status] = array($func, $fd);
+                pcntl_signal($fd, $func);
+            }
+                break;
 			default:
 				break;
 		}
@@ -51,19 +60,28 @@ class ezEventSelect{
 				if(!empty($this->exceptEvent[$fd_key]))
 					unset($this->exceptEvent[$fd_key]);
 				break;
+            case ezEvent::eventSignal:
+                if(DIRECTORY_SEPARATOR !== '/') {
+                    return false;
+                }
+//                pcntl_signal($fd, SIG_IGN);
+                break;
 			default:
 				break;
 		}
 	}
 	// 开始监视资源
-	public function loop($thirdEvents = null, $time = 0.2){
+	public function loop($thirdEvents = null, $time = 0){
 		while(true){
 			if(count($thirdEvents)>0) {
 				// 单进程中，第三方循环事件，如db连接，查询
 				foreach ($thirdEvents as $thirdEvent)
 					$thirdEvent->loop();
 			}
-
+            if(DIRECTORY_SEPARATOR === '/') {
+                // Calls signal handlers for pending signals
+//                pcntl_signal_dispatch();
+            }
 			$read = $this->readEvent;
 			$write = $this->writeEvent;
 			$except = $this->exceptEvent;

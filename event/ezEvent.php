@@ -11,22 +11,28 @@ class ezEvent{
 	const eventExcept 		= 2;
 	const eventError 		= 3;
 	const eventTimeOnce		= 4;
+	const eventSignal       = 8;
 
 	private $os = null;
 	private $reactor = null;
-	public $thirdEvents = array();
+	private $thirdEvents = null;
 
 	public function __construct($os){
 		$this->os = $os;
 		$this->init();
 	}
-	private function init(){
-		if(extension_loaded('libevent')){
+    private function init(){
+        if(extension_loaded('libevent')){
             $this->reactor = new ezEventLibEvent();
-		}else{
-			$this->reactor = new ezEventSelect();
-		}
-	}
+//            $this->reactor = new ezEventSelect();
+
+        }else{
+            $this->reactor = new ezEventSelect();
+        }
+    }
+	public function setThirdEvents($thirds){
+	    $this->thirdEvents = $thirds;
+    }
     // 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){
 		$this->reactor->add($fd, $status, $func,$arg);
