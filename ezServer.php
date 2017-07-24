@@ -53,6 +53,7 @@ class ezServer{
 			if($pid == 0) {
 				$this->event = new ezEvent($this->os);
 				$this->event->setThirdEvents($this->thirdEvents);
+				$this->event->add(1,ezEvent::eventTime,array($this->event,'onThirds'));
 				$this->event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
                 $this->event->loop();
 				echo "child pid exit event loop\n";

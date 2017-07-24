@@ -25,7 +25,7 @@ class ezEventDB{
 		$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
 		if (!$con)throw new Exception(mysqli_error());
 		$this->syncConnect = $con;
-//		$this->createConnects();
+		$this->createConnects();
 	}
     private function createConnects(){
 		for($id=0;$id<$this->maxAsyncConnects;$id++){

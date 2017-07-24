@@ -45,6 +45,11 @@ class ezEvent{
     }
     // 对外接口 开始监视资源
     public function loop(){
-		$this->reactor->loop($this->thirdEvents);
+		$this->reactor->loop();
+    }
+    public function onThirds($null1,$null2,$data){
+        foreach ($this->thirdEvents as $third)
+            $third->loop();
+        event_add($data[0],$data[1]*1000);
     }
 }

@@ -12,7 +12,7 @@ class ezWebServer extends ezServer {
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
 		$this->eventDB = new ezEventDB($this);
-//		$this->thirdEvents[] = $this->eventDB;
+		$this->thirdEvents[] = $this->eventDB;
 	}
 
 	// 设置域名和网站目录

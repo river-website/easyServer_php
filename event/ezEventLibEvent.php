@@ -18,11 +18,11 @@ class ezEventLibEvent{
 		switch ($status){
 			case ezEvent::eventTime: {
 				$event = event_new();
-				if (!event_set($event, 0, EV_TIMEOUT, $func, array($event, $arg)))
+				if (!event_set($event, 0, $status, $func, array($event ,$fd, $arg)))
 					return false;
 				if (!event_base_set($event, $this->base))
 					return false;
-				if (!event_add($event, $fd))
+				if (!event_add($event, $fd*1000))
 					return false;
 				$this->allEvent[(int)$event][$status] = $event;
 				return (int)$event;
@@ -76,7 +76,7 @@ class ezEventLibEvent{
 					$thirdEvent->loop();
 				event_base_loop($this->base,EVLOOP_NONBLOCK);
 			}else
-			event_base_loop($this->base,EVLOOP_NONBLOCK);
+			event_base_loop($this->base);
 		}
 	}
 }
