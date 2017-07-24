@@ -4,7 +4,7 @@ class ezEventDB{
 //	public $que = null;
 	private $syncConnect = null;
 	private $asyncConnects = array();
-	private $maxAsyncConnects = 1;
+	private $maxAsyncConnects = 4;
 	private $conf = null;
 	private $linkKeys = array();
     private $freeAsyuncLink = array();
@@ -19,15 +19,16 @@ class ezEventDB{
 			'dataBase' => 'test',
 			'port' => 3306
 		);
-		$this->createConnects();
 		$this->server = $server;
     }
-    private function createConnects(){
+    public function init(){
 		$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
 		if (!$con)throw new Exception(mysqli_error());
 		$this->syncConnect = $con;
-
-    	for($id=0;$id<$this->maxAsyncConnects;$id++){
+//		$this->createConnects();
+	}
+    private function createConnects(){
+		for($id=0;$id<$this->maxAsyncConnects;$id++){
 			$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
 			if (!$con)throw new Exception(mysqli_error());
 			$this->asyncConnects[$id] = $con;

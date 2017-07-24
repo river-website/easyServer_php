@@ -121,6 +121,6 @@ class ezTCP{
 		$this->event->del($this->socket, ezEvent::eventWrite);
 		// Close socket.
 		@fclose($this->socket);
-        echo "destroy socket -> ".$this->socket."\n";
+//        echo "destroy socket -> ".$this->socket."\n";
 	}
 }

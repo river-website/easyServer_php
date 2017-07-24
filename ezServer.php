@@ -82,7 +82,7 @@ class ezServer{
 		$new_socket = @stream_socket_accept($socket, 0, $remote_address);
 		if (!$new_socket) 
 			return;
-        echo "connect socket -> ".$new_socket."\n";
+//        echo "connect socket -> ".$new_socket."\n";
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);

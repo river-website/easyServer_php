@@ -12,7 +12,7 @@ class ezWebServer extends ezServer {
 		$this->onMessage = array($this, 'onMessage');
 		$this->protocol = new ezHTTP();
 		$this->eventDB = new ezEventDB($this);
-		$this->thirdEvents[] = $this->eventDB;
+//		$this->thirdEvents[] = $this->eventDB;
 	}
 
 	// 设置域名和网站目录
@@ -48,7 +48,7 @@ class ezWebServer extends ezServer {
                 $workerman_file_extension = 'html';
             }
         }
-		echo "visit page -> $workerman_file\n";
+//		echo "visit page -> $workerman_file\n";
         // File exsits.
         if (is_file($workerman_file)) {
             // Security check.

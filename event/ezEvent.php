@@ -31,6 +31,8 @@ class ezEvent{
         }
     }
 	public function setThirdEvents($thirds){
+		foreach ($thirds as $third)
+			$third->init();
 	    $this->thirdEvents = $thirds;
     }
     // 对外接口 增加一个监视资源，状态及事件处理
