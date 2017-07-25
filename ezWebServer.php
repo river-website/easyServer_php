@@ -2,6 +2,7 @@
 require 'protocol/ezHTTP.php';
 require 'event/ezEventDB.php';
 require 'com/ezQue.php';
+require 'com/ezFunc.php';
 
 class ezWebServer extends ezServer {
 	private $serverRoot = array();

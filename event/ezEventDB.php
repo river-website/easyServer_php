@@ -4,10 +4,11 @@ class ezEventDB{
 //	public $que = null;
 	private $syncConnect = null;
 	private $asyncConnects = array();
-	private $maxAsyncConnects = 4;
+	private $maxAsyncConnects = 1;
 	private $conf = null;
 	private $linkKeys = array();
-    private $freeAsyuncLink = array();
+	private $freeAsyncLink = array();
+	private $busyAsyncLink = array();
     private $sqlList = array();
     private $server = null;
     public function __construct($server){
@@ -32,7 +33,7 @@ class ezEventDB{
 			$con = mysqli_connect($this->conf['host'], $this->conf['user'], $this->conf['password'], $this->conf['dataBase'], $this->conf['port']);
 			if (!$con)throw new Exception(mysqli_error());
 			$this->asyncConnects[$id] = $con;
-			$this->freeAsyuncLink[] = $con;
+			$this->freeAsyncLink[] = $con;
 			$linkKey = $this->linkToKey($con);
 			echo "link key is -> ".$linkKey."\n";
 //			$this->que->sendMsg(ezQue::queDBConFree, $linkKey);
@@ -46,13 +47,14 @@ class ezEventDB{
     	if(!empty($func)){
             $con = $this->server->curConn;
             $con->setDelaySend();
-            $link = array_shift($this->freeAsyuncLink);
+            $link = array_shift($this->freeAsyncLink);
             if(empty($link))
                 $this->sqlList[] = array($sql,$func,$this->server->curConn);
             else{
                 $linkKey = $this->linkToKey($link);
                 $ret = mysqli_query($link, $sql,MYSQLI_ASYNC);
                 $this->linkKeys[$linkKey] = array($func,$this->server->curConn);
+                $this->busyAsyncLink[$linkKey] = $link;
             }
 //			$linkKey = $this->que->getMsg(ezQue::queDBConFree);
 //			if(empty($linkKey)){
@@ -103,7 +105,7 @@ class ezEventDB{
     //  db loop do
     public function loop($break = true, $time = 0){
         while(true){
-            $read = $errors = $reject = $this->asyncConnects;
+            $read = $errors = $reject = $this->busyAsyncLink;
             $re = mysqli_poll($read, $errors, $reject, $time);
 			if (false === $re) {
 				die('mysqli_poll failed');
@@ -112,7 +114,6 @@ class ezEventDB{
                 continue;
 			}
             foreach ($read as $link) {
-			    echo "link ready\n";
                 $sql_result = $link->reap_async_query();
                 if (is_object($sql_result))
                     $linkData = $sql_result->fetch_all(MYSQLI_ASSOC);
@@ -120,22 +121,29 @@ class ezEventDB{
                     echo $link->error, "\n";
                 $linkKey = $this->linkToKey($link);
                 $sqlInfo = array_shift($this->sqlList);
-                if(empty($sqlInfo))$this->freeAsyuncLink[] = $link;
+                if(empty($sqlInfo)){
+                	$this->freeAsyuncLink[] = $link;
+				}
                 else {
                     mysqli_query($link, $sqlInfo[0], MYSQLI_ASYNC);
                     $this->linkKeys[$linkKey] = array($sqlInfo[1], $sqlInfo[2]);
                 }
                 $linkInfo = $this->linkKeys[$linkKey];
                 $func = $linkInfo[0];
-                ob_start();
+				$socketCon = $linkInfo[1];
+				$socketCon->setImmedSend();
+				ob_start();
                 try {
                     call_user_func_array($func, array($linkData));
                 }catch (Exception $ex){
                     echo $ex;
                 }
                 $contents = ob_get_clean();
-                $socketCon = $linkInfo[1];
-                $socketCon->immedSend($contents);
+				echoDebug($socketCon->getSocket());
+				$socketCon->close($contents);
+				echoDebug(print_r($contents,true));
+				echoDebug("close");
+//				$socketCon->send($contents);
             }
         }
 //    	while(true){

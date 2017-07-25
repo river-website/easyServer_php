@@ -12,7 +12,7 @@ class ezServer{
 	protected $event = null;
 	protected $thirdEvents = array();
 	protected $protocol = null;
-	public $processCount = 4;
+	public $processCount = 1;
 	private $pids = array();
 	public $onMessage = null;
 	public $onStart = null;
@@ -83,7 +83,8 @@ class ezServer{
 		$new_socket = @stream_socket_accept($socket, 0, $remote_address);
 		if (!$new_socket) 
 			return;
-//        echo "connect socket -> ".$new_socket."\n";
+		echoDebug("connect socket -> ".$new_socket);
+		echoDebug("remote address -> ".$remote_address);
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);

@@ -24,6 +24,9 @@ class ezTCP{
     public function setProtocol($protocol){
         $this->protocol = $protocol;
     }
+    public function getSocket(){
+    	return $this->socket;
+	}
     public function getRemoteIp()
     {
         $pos = strrpos($this->remote_address, ':');
@@ -56,9 +59,8 @@ class ezTCP{
 	public function setDelaySend(){
 	    $this->sendStatus = false;
     }
-    public function immedSend($data){
+    public function setImmedSend(){
 	    $this->sendStatus = true;
-	    $this->send($data);
     }
 	// 回调处理写准备好事件
 	public function onWrite($socket){
@@ -120,7 +122,7 @@ class ezTCP{
 		$this->event->del($this->socket, ezEvent::eventRead);
 		$this->event->del($this->socket, ezEvent::eventWrite);
 		// Close socket.
-		@fclose($this->socket);
-//        echo "destroy socket -> ".$this->socket."\n";
+		fclose($this->socket);
+        echoDebug("destroy socket -> ".$this->socket);
 	}
 }

@@ -24,8 +24,6 @@ class ezEvent{
     private function init(){
         if(extension_loaded('libevent')){
             $this->reactor = new ezEventLibEvent();
-//            $this->reactor = new ezEventSelect();
-
         }else{
             $this->reactor = new ezEventSelect();
         }
