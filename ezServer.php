@@ -12,7 +12,7 @@ class ezServer{
 	protected $event = null;
 	protected $thirdEvents = array();
 	protected $protocol = null;
-	public $processCount = 1;
+	public $processCount = 4;
 	private $pids = array();
 	public $onMessage = null;
 	public $onStart = null;

@@ -8,7 +8,7 @@
 
 if (!function_exists('echoDebug')) {
 	function echoDebug($msg){
-		if(true)
+		if(false)
 			echo $msg."\n";
 	}
 }
