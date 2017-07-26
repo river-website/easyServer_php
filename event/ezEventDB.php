@@ -34,7 +34,6 @@ class ezEventDB{
     }
     public function excute($sql, $func = null,$queEvent = false){
     	if(!empty($func) || $queEvent){
-//            $con = ezGLOBALS::$data['curConnect'];
 			$con = ezGLOBALS::$curConnect;
 			if(!empty($func))
             	$con->setDelaySend();

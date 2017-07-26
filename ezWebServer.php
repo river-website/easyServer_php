@@ -1,6 +1,6 @@
 <?php
 
-class ezWebServer {
+class ezWeb {
 	private $serverRoot = array();
 	public function __construct($host){
 		$server = new ezServer('tcp://'.$host);
@@ -62,7 +62,6 @@ class ezWebServer {
             // Request php file.
             if ($workerman_file_extension === 'php') {
                 ezGLOBALS::$curConnect = $connection;
-//				ezGLOBALS::$data['curConnect'] = $connection;
                 $workerman_cwd = getcwd();
                 chdir($workerman_root_dir);
                 ini_set('display_errors', 'off');

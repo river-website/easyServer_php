@@ -11,8 +11,8 @@ class ezGLOBALS{
 	static public $os					= null;
 	static public $curConnect			= null;
 	static public $multiProcess 		= true;
-	static public $processCount 		= 4;
-	static public $maxAsyncLinks 		= 5;
+	static public $processCount 		= 2;
+	static public $maxAsyncLinks 		= 10;
 	static public $event				= null;
 	static public $thirdEventsTime		= 1;
 	static public $thirdEvents			= array();
