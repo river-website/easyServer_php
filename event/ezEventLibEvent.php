@@ -68,15 +68,7 @@ class ezEventLibEvent{
 		}
 	}
 	// 开始监视资源
-	public function loop($thirdEvents = null, $time = 0.2){
-		while(true){
-			if(count($thirdEvents)>0) {
-				// 单进程中，第三方循环事件，如db连接，查询
-				foreach ($thirdEvents as $thirdEvent)
-					$thirdEvent->loop();
-				event_base_loop($this->base,EVLOOP_NONBLOCK);
-			}else
-			event_base_loop($this->base);
-		}
+	public function loop(){
+		event_base_loop($this->base);
 	}
 }

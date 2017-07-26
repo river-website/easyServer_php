@@ -1,24 +1,20 @@
 <?php
-require 'protocol/ezHTTP.php';
-require 'event/ezEventDB.php';
-require 'com/ezQue.php';
-require 'com/ezFunc.php';
 
-class ezWebServer extends ezServer {
+class ezWebServer {
 	private $serverRoot = array();
-    public $eventDB = null;
-    public $curConn = null;
 	public function __construct($host){
-		parent::__construct('tcp://'.$host);
-		$this->onMessage = array($this, 'onMessage');
-		$this->protocol = new ezHTTP();
-		$this->eventDB = new ezEventDB($this);
-		$this->thirdEvents[] = $this->eventDB;
+		$server = new ezServer('tcp://'.$host);
+		$server->onMessage = array($this, 'onMessage');
+		$server->protocol = new ezHTTP();
+		ezGLOBALS::$thirdEvents[] = new ezEventDB($this);
 	}
 
 	// 设置域名和网站目录
 	public function setWeb($webSite,$path){
 		$this->serverRoot[$webSite] = $path;
+	}
+	public function start(){
+		ezGLOBALS::$server->start();
 	}
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
@@ -65,7 +61,8 @@ class ezWebServer extends ezServer {
 
             // Request php file.
             if ($workerman_file_extension === 'php') {
-                $this->curConn = $connection;
+                ezGLOBALS::$curConnect = $connection;
+//				ezGLOBALS::$data['curConnect'] = $connection;
                 $workerman_cwd = getcwd();
                 chdir($workerman_root_dir);
                 ini_set('display_errors', 'off');

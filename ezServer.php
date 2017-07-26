@@ -1,27 +1,30 @@
 <?php
 
+require 'com/ezGLOBALS.php';
 require 'connect/ezTCP.php';
 require 'event/ezEvent.php';
+require 'protocol/ezHTTP.php';
+require 'event/ezEventDB.php';
+require 'com/ezQue.php';
+require 'com/ezFunc.php';
 
 class ezServer{
 
-	private $serverSocket = null;
-	private $host = null;
-	private $os = null;
+	private $serverSocket 	= null;
+	private $host 			= null;
+	private $pids 			= array();
 
-	protected $event = null;
-	protected $thirdEvents = array();
-	protected $protocol = null;
-	public $processCount = 4;
-	private $pids = array();
-	public $onMessage = null;
-	public $onStart = null;
-	public $onStop = null;
-	public $onConnect = null;
-	public $onClose = null; 
+	public $protocol 		= null;
+	public $onMessage 		= null;
+	public $onStart 		= null;
+	public $onStop		 	= null;
+	public $onConnect 		= null;
+	public $onClose 		= null;
 
 	public function __construct($host){
 		$this->host = $host;
+		ezGLOBALS::$os = $this->getOS();
+		ezGLOBALS::$server = $this;
 	}
 	// 获取操作系统
 	private function getOS(){
@@ -30,10 +33,6 @@ class ezServer{
             $os = 'Windows';
         else $os = 'Linux';
 		return $os; 
-	}
-	// 初始化
-	private function init(){
-	    $this->os = $this->getOS();
 	}
 	private function createSocket(){
 		$this->serverSocket = stream_socket_server($this->host);
@@ -45,17 +44,13 @@ class ezServer{
 		echo "server socket -> " . $this->serverSocket . "\n";
 	}
 	public function start(){
-	    $this->init();
         $this->createSocket();
-//		$this->forkMysql();
-        for($i=0;$i<$this->processCount;$i++){
+        for($i=0;$i<ezGLOBALS::$processCount;$i++){
 			$pid = pcntl_fork();
 			if($pid == 0) {
-				$this->event = new ezEvent($this->os);
-				$this->event->setThirdEvents($this->thirdEvents);
-				$this->event->add(1,ezEvent::eventTime,array($this->event,'onThirds'));
-				$this->event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
-                $this->event->loop();
+				ezGLOBALS::$event = new ezEvent();
+				ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+				ezGLOBALS::$event->loop();
 				echo "child pid exit event loop\n";
 			}else{
 				echo "child pid -> $pid\n";
@@ -63,14 +58,6 @@ class ezServer{
 			}
 		}
 		$this->monitorWorkers();
-    }
-    private function forkMysql(){
-        $pid = pcntl_fork();
-        if($pid == 0) {
-            $this->eventDB->loop();
-        }else{
-            $this->pids[] = $pid;
-        }
     }
     private function monitorWorkers(){
 		echo "start monitor workers\n";
@@ -88,9 +75,8 @@ class ezServer{
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);
-		$tcp->setEvent($this->event);
 		$tcp->setOnMessage($this->onMessage);
 		$tcp->setProtocol($this->protocol);
-		$this->event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
+		ezGLOBALS::$event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
 	}
 }

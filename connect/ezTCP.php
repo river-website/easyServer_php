@@ -4,7 +4,6 @@ class ezTCP{
 	private $socket = null;
 	private $remote_address = null;
 	private $onMessage = null;
-	private $event = null;
 	private $protocol = null;
 	private $sendBuffer = null;
 	private $sendStatus = true;
@@ -15,10 +14,6 @@ class ezTCP{
 	// 设置tcp读数据完成回调函数
 	public function setOnMessage($func){
 		$this->onMessage = $func;
-	}
-	// 设置事件分发对象
-	public function setEvent($event){
-		$this->event = $event;
 	}
     // 设置事件分发对象
     public function setProtocol($protocol){
@@ -78,7 +73,7 @@ class ezTCP{
                 return;
             }
 		}
-		$this->event->del($this->socket,ezEvent::eventWrite);
+		ezGLOBALS::$event->del($this->socket,ezEvent::eventWrite);
 	}
 	// 发送数据
 	public function send($data){
@@ -101,7 +96,7 @@ class ezTCP{
 			}
 			$this->sendBuffer = $data;
 		}
-		$this->event->add($this->socket,ezEvent::eventWrite,array($this,'onWrite'));
+		ezGLOBALS::$event->add($this->socket,ezEvent::eventWrite,array($this,'onWrite'));
 		return true;
 	}
 	//关闭当前连接
@@ -119,8 +114,8 @@ class ezTCP{
 	public function destroy()
 	{
 		// Remove event listener.
-		$this->event->del($this->socket, ezEvent::eventRead);
-		$this->event->del($this->socket, ezEvent::eventWrite);
+		ezGLOBALS::$event->del($this->socket, ezEvent::eventRead);
+		ezGLOBALS::$event->del($this->socket, ezEvent::eventWrite);
 		// Close socket.
 		fclose($this->socket);
         echoDebug("destroy socket -> ".$this->socket);

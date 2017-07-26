@@ -9,7 +9,7 @@
 class ezEventSelect{
 
 	private $allEvent 		= array();
-	private $readEvent 	    = array();
+	private $readEvent 	= array();
 	private $writeEvent 	= array();
 	private $exceptEvent 	= array();
 

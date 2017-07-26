@@ -13,12 +13,10 @@ class ezEvent{
 	const eventTimeOnce		= 4;
 	const eventSignal       = 8;
 
-	private $os = null;
 	private $reactor = null;
 	private $thirdEvents = null;
 
-	public function __construct($os){
-		$this->os = $os;
+	public function __construct(){
 		$this->init();
 	}
     private function init(){
@@ -27,12 +25,10 @@ class ezEvent{
         }else{
             $this->reactor = new ezEventSelect();
         }
-    }
-	public function setThirdEvents($thirds){
-		foreach ($thirds as $third)
-			$third->init();
-	    $this->thirdEvents = $thirds;
-    }
+		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
+			$thirdEvent->init();
+		$this->add(ezGLOBALS::$thirdEventsTime,ezEvent::eventTime, array($this,'onThirds'));
+	}
     // 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){
 		$this->reactor->add($fd, $status, $func,$arg);
@@ -46,8 +42,8 @@ class ezEvent{
 		$this->reactor->loop();
     }
     public function onThirds($null1,$null2,$data){
-        foreach ($this->thirdEvents as $third)
-            $third->loop();
+        foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
+			$thirdEvent->loop();
         event_add($data[0],$data[1]*1000);
     }
 }
