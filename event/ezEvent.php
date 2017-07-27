@@ -27,7 +27,8 @@ class ezEvent{
         }
 		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
 			$thirdEvent->init();
-		$this->add(ezGLOBALS::$thirdEventsTime,ezEvent::eventTime, array($this,'onThirds'));
+        if(ezGLOBALS::$thirdEventsTime)
+			$this->add(ezGLOBALS::$thirdEventsTime,ezEvent::eventTime, array($this,'onThirds'));
 	}
     // 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){

@@ -45,8 +45,8 @@ class ezTCP{
 			$this->destroy();
 			return;	
 		}
-		if($this->protocol){
-            $buffer = $this->protocol->decode($buffer,$this);
+		if(ezGLOBALS::$server->protocol){
+            $buffer = ezGLOBALS::$server->protocol->decode($buffer,$this);
         }
 		if($this->onMessage)
 			call_user_func_array($this->onMessage,array($this,$buffer));
@@ -82,7 +82,7 @@ class ezTCP{
 	        return;
         }
         $data = $this->sendBuffer.$data;
-	    if($this->protocol)$data = $this->protocol->encode($data,$this);
+	    if(ezGLOBALS::$server->protocol)$data = ezGLOBALS::$server->protocol->encode($data,$this);
 		$len = @fwrite($this->socket,$data);
 		if($len == strlen($data)) {
             $this->sendBuffer = '';

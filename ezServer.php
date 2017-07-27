@@ -45,6 +45,13 @@ class ezServer{
 	}
 	public function start(){
         $this->createSocket();
+        if(!ezGLOBALS::$multiProcess){
+			ezGLOBALS::$event = new ezEvent();
+			ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+			ezGLOBALS::$event->loop();
+			echo "main pid exit event loop\n";
+			exit();
+		}
         for($i=0;$i<ezGLOBALS::$processCount;$i++){
 			$pid = pcntl_fork();
 			if($pid == 0) {
@@ -76,7 +83,6 @@ class ezServer{
 
 		$tcp = new ezTCP($new_socket,$remote_address);
 		$tcp->setOnMessage($this->onMessage);
-		$tcp->setProtocol($this->protocol);
 		ezGLOBALS::$event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
 	}
 }

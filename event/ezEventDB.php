@@ -15,7 +15,8 @@ class ezEventDB{
     public function init(){
 		$conf = ezGLOBALS::$dbConf;
     	$maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
-		$this->syncConnect = $this->connectDB($conf);
+		$this->syncLink = $this->connectDB($conf);
+		if(ezGLOBALS::$thirdEventsTime==0)return;
 		for($i=0;$i<$maxAsyncLinks;$i++){
 			$con = $this->connectDB($conf);
 			$this->asyncLinks[] = $con;

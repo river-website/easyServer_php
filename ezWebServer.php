@@ -1,6 +1,6 @@
 <?php
 
-class ezWeb {
+class ezWebServer {
 	private $serverRoot = array();
 	public function __construct($host){
 		$server = new ezServer('tcp://'.$host);
@@ -18,6 +18,8 @@ class ezWeb {
 	}
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
+		$connection->close("test!123test!123test!123test!123");
+		return;
         // REQUEST_URI.
         $workerman_url_info = parse_url($_SERVER['REQUEST_URI']);
         if (!$workerman_url_info) {
