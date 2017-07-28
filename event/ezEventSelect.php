@@ -29,15 +29,15 @@ class ezEventSelect{
 				$this->allEvent[$fdKey][$status] = array($func,$arg);
 				$this->exceptEvent[$fdKey] = $fd;
 				break;
-            case ezEvent::eventSignal: {
-                // Windows not support signal.
-                if (DIRECTORY_SEPARATOR !== '/') {
-                    return false;
-                }
-//                $this->allEvent[(int)$fd][$status] = array($func, $fd);
-                pcntl_signal($fd, $func);
-            }
-                break;
+			case ezEvent::eventSignal: {
+				// Windows not support signal.
+				if (DIRECTORY_SEPARATOR !== '/') {
+					return false;
+				}
+//				$this->allEvent[(int)$fd][$status] = array($func, $fd);
+				pcntl_signal($fd, $func);
+			}
+				break;
 			default:
 				break;
 		}
@@ -60,12 +60,12 @@ class ezEventSelect{
 				if(!empty($this->exceptEvent[$fd_key]))
 					unset($this->exceptEvent[$fd_key]);
 				break;
-            case ezEvent::eventSignal:
-                if(DIRECTORY_SEPARATOR !== '/') {
-                    return false;
-                }
-//                pcntl_signal($fd, SIG_IGN);
-                break;
+			case ezEvent::eventSignal:
+				if(DIRECTORY_SEPARATOR !== '/') {
+					return false;
+				}
+//				pcntl_signal($fd, SIG_IGN);
+				break;
 			default:
 				break;
 		}
@@ -78,10 +78,10 @@ class ezEventSelect{
 				foreach ($thirdEvents as $thirdEvent)
 					$thirdEvent->loop();
 			}
-            if(DIRECTORY_SEPARATOR === '/') {
-                // Calls signal handlers for pending signals
-//                pcntl_signal_dispatch();
-            }
+			if(DIRECTORY_SEPARATOR === '/') {
+				// Calls signal handlers for pending signals
+//				pcntl_signal_dispatch();
+			}
 			$read = $this->readEvent;
 			$write = $this->writeEvent;
 			$except = $this->exceptEvent;

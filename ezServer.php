@@ -28,10 +28,10 @@ class ezServer{
 	}
 	// 获取操作系统
 	private function getOS(){
-        // windows or linux
-        if(strpos(PHP_OS,'WIN') !== FALSE)
-            $os = 'Windows';
-        else $os = 'Linux';
+		// windows or linux
+		if(strpos(PHP_OS,'WIN') !== FALSE)
+			$os = 'Windows';
+		else $os = 'Linux';
 		return $os; 
 	}
 	private function createSocket(){
@@ -44,15 +44,15 @@ class ezServer{
 		echo "server socket -> " . $this->serverSocket . "\n";
 	}
 	public function start(){
-        $this->createSocket();
-        if(!ezGLOBALS::$multiProcess){
+		$this->createSocket();
+		if(!ezGLOBALS::$multiProcess){
 			ezGLOBALS::$event = new ezEvent();
 			ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
 			ezGLOBALS::$event->loop();
 			echo "main pid exit event loop\n";
 			exit();
 		}
-        for($i=0;$i<ezGLOBALS::$processCount;$i++){
+		for($i=0;$i<ezGLOBALS::$processCount;$i++){
 			$pid = pcntl_fork();
 			if($pid == 0) {
 				ezGLOBALS::$event = new ezEvent();
@@ -65,8 +65,8 @@ class ezServer{
 			}
 		}
 		$this->monitorWorkers();
-    }
-    private function monitorWorkers(){
+	}
+	private function monitorWorkers(){
 		echo "start monitor workers\n";
 		while(1){
 			sleep(10);

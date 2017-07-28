@@ -10,11 +10,11 @@ class ezGLOBALS{
 	static public $server				= null;
 	static public $os					= null;
 	static public $curConnect			= null;
-	static public $multiProcess 		= true;
-	static public $processCount 		= 2;
+	static public $multiProcess 		= false;								// 单核单进程，几核几进程
+	static public $processCount 		= 2;									// 单核单进程，几核几进程
 	static public $maxAsyncLinks 		= 0;
 	static public $event				= null;
-	static public $thirdEventsTime		= 0;
+	static public $thirdEventsTime		= 0;									// 0为没有异步sql池,
 	static public $thirdEvents			= array();
 	static public $dbEvent				= null;
 	static public $debug				= false;

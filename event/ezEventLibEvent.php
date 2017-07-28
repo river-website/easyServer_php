@@ -28,20 +28,20 @@ class ezEventLibEvent{
 				return (int)$event;
 			}
 				break;
-            case ezEvent::eventSignal: {
-                $event = event_new();
-                if (!event_set($event, $fd, $status | EV_PERSIST, $func, null)) {
-                    return false;
-                }
-                if (!event_base_set($event, $this->base)) {
-                    return false;
-                }
-                if (!event_add($event)) {
-                    return false;
-                }
-                $this->allEvent[(int)$fd][$status] = $event;
-            }
-                break;
+			case ezEvent::eventSignal: {
+				$event = event_new();
+				if (!event_set($event, $fd, $status | EV_PERSIST, $func, null)) {
+					return false;
+				}
+				if (!event_base_set($event, $this->base)) {
+					return false;
+				}
+				if (!event_add($event)) {
+					return false;
+				}
+				$this->allEvent[(int)$fd][$status] = $event;
+			}
+				break;
 			case ezEvent::eventRead:
 			case ezEvent::eventWrite: {
 				$event = event_new();
