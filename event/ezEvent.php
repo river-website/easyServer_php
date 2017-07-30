@@ -8,10 +8,10 @@ class ezEvent{
 	const eventTime 		= 1;
 	const eventRead 		= 2;
 	const eventWrite 		= 4;
-	const eventExcept 		= 2;
-	const eventError 		= 3;
-	const eventTimeOnce		= 4;
-	const eventSignal	   = 8;
+    const eventSignal	    = 8;
+    const eventTimeOnce		= 16;
+    const eventClock		= 32;
+    const eventExcept 		= 64;
 
 	private $reactor = null;
 	private $thirdEvents = null;
@@ -42,9 +42,8 @@ class ezEvent{
 	public function loop(){
 		$this->reactor->loop();
 	}
-	public function onThirds($null1,$null2,$data){
+	public function onThirds(){
 		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
 			$thirdEvent->loop();
-		event_add($data[0],$data[1]*1000);
 	}
 }

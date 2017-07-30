@@ -9,6 +9,6 @@
 if (!function_exists('echoDebug')) {
 	function echoDebug($msg){
 		if(ezGLOBALS::$debug)
-			echo $msg."\n";
+			echo ezGLOBALS::$processName." -> $msg\n";
 	}
 }

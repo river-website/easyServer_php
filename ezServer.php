@@ -5,7 +5,7 @@ require 'connect/ezTCP.php';
 require 'event/ezEvent.php';
 require 'protocol/ezHTTP.php';
 require 'event/ezEventDB.php';
-require 'com/ezQue.php';
+require 'event/ezEventQue.php';
 require 'com/ezFunc.php';
 
 class ezServer{
@@ -41,44 +41,62 @@ class ezServer{
 			exit();
 		}
 		stream_set_blocking($this->serverSocket, 0);
-		echo "server socket -> " . $this->serverSocket . "\n";
+		echoDebug("server socket: " . $this->serverSocket);
 	}
 	public function start(){
-		$this->createSocket();
-		if(!ezGLOBALS::$multiProcess){
-			ezGLOBALS::$event = new ezEvent();
-			ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
-			ezGLOBALS::$event->loop();
-			echo "main pid exit event loop\n";
-			exit();
-		}
-		for($i=0;$i<ezGLOBALS::$processCount;$i++){
-			$pid = pcntl_fork();
-			if($pid == 0) {
-				ezGLOBALS::$event = new ezEvent();
-				ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
-				ezGLOBALS::$event->loop();
-				echo "child pid exit event loop\n";
-			}else{
-				echo "child pid -> $pid\n";
-				$this->pids[] = $pid;
-			}
-		}
+        $this->createSocket();
+        if(!ezGLOBALS::$multiProcess){
+            ezGLOBALS::$event = new ezEvent();
+            ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+            ezGLOBALS::$event->loop();
+            echoDebug("main pid exit event loop");
+            exit();
+        }
+		$this->forks();
 		$this->monitorWorkers();
 	}
+	private function forks(){
+        for($i=0;$i<ezGLOBALS::$processCount;$i++){
+            $pid = pcntl_fork();
+            if($pid == 0) {
+                ezGLOBALS::$processName = 'work process';
+                ezGLOBALS::$event = new ezEvent();
+                ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+                ezGLOBALS::$event->loop();
+                echoDebug("child pid exit event loop");
+            }else{
+                echoDebug("child pid: $pid");
+                $this->pids[] = $pid;
+            }
+        }
+    }
+
 	private function monitorWorkers(){
-		echo "start monitor workers\n";
-		while(1){
-			sleep(10);
-		}
+		echoDebug("start monitor workers");
+		$oldPids = array();
+
+		while(true){
+            $pid    = pcntl_wait($status, WUNTRACED);
+            if(!empty($oldPids[(int)$pid])) {
+                unset($oldPids[(int)$pid]);
+                continue;
+            }
+            $oldPids = array();
+            foreach ($this->pids as $pid) {
+                posix_kill($pid, SIGKILL);
+                $oldPids[(int)$pid] = $pid;
+            }
+            $this->pids = array();
+            $this->forks();
+        }
 	}
 	// 当收到连接时
 	public function onAccept($socket){
 		$new_socket = @stream_socket_accept($socket, 0, $remote_address);
 		if (!$new_socket) 
 			return;
-		echoDebug("connect socket -> ".$new_socket);
-		echoDebug("remote address -> ".$remote_address);
+		echoDebug("connect socket: ".$new_socket);
+		echoDebug("remote address: ".$remote_address);
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);

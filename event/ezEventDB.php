@@ -8,7 +8,7 @@ class ezEventDB{
 	private $freeAsyncLink 	= array();
 	private $sqlList 			= array();
 	private $time				= 0;
-	public function __construct($server){
+	public function __construct(){
 		ezGLOBALS::$dbEvent = $this;
 //		$this->que = new ezQue();
 	}
@@ -21,7 +21,7 @@ class ezEventDB{
 			$con = $this->connectDB($conf);
 			$this->asyncLinks[] = $con;
 			$this->freeAsyncLink[] = $con;
-			echoDebug("link key is -> ".$this->linkToKey($con));
+			echoDebug("link key is: ".$this->linkToKey($con));
 //			$this->que->sendMsg(ezQue::queDBConFree, $linkKey);
 		}
 	}
@@ -97,6 +97,7 @@ class ezEventDB{
 	//  db loop do
 	public function loop(){
 		while(true){
+		    if(count($this->asyncLinks) == 0)return;
 			$read = $errors = $reject = $this->asyncLinks;
 			$re = mysqli_poll($read, $errors, $reject, $this->time);
 			if (false === $re) {
@@ -104,7 +105,7 @@ class ezEventDB{
 			} elseif ($re < 1)
 				return;
 
-			echoDebug("read reasy!");
+			echoDebug("read ready!");
 			foreach ($read as $link) {
 				$sql_result = $link->reap_async_query();
 				if (is_object($sql_result))

@@ -10,29 +10,31 @@ class ezGLOBALS{
 	static public $server				= null;
 	static public $os					= null;
 	static public $curConnect			= null;
-	static public $multiProcess 		= false;								// 单核单进程，几核几进程
-	static public $processCount 		= 2;									// 单核单进程，几核几进程
+	static public $multiProcess 		= true;								// 单核单进程，几核几进程
+	static public $processCount 		= 1;									// 单核单进程，几核几进程
 	static public $maxAsyncLinks 		= 0;
 	static public $event				= null;
-	static public $thirdEventsTime		= 0;									// 0为没有异步sql池,
+	static public $thirdEventsTime		= 1000;									// 0为没有异步sql池,
 	static public $thirdEvents			= array();
 	static public $dbEvent				= null;
-	static public $debug				= false;
+	static public $queEvent             = null;
+	static public $processName          = 'main process';
+	static public $debug				= true;
 	static public $dbConf				= array(
 												'host' => '127.0.0.1',
 												'user' => 'root',
 												'password' => 'root',
-												'dataBase' => 'test',
+												'dataBase' => 'yun',
 												'port' => 3306
 											);
-	public function get($key){
+	static public function get($key){
 		if(isset(self::$data[$key])) {
 			$value = self::$data[$key];
 			if($value['time']>time())
 				return $value['data'];
 		}
 	}
-	public function set($key,$value,$time=315360000){
+	static public function set($key,$value,$time=315360000){
 		self::$data[$key] = array('time'=>$time+time(),'data'=>$value);
 	}
 }

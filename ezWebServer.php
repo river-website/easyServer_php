@@ -6,7 +6,8 @@ class ezWebServer {
 		$server = new ezServer('tcp://'.$host);
 		$server->onMessage = array($this, 'onMessage');
 		$server->protocol = new ezHTTP();
-		ezGLOBALS::$thirdEvents[] = new ezEventDB($this);
+        ezGLOBALS::$thirdEvents[] = new ezEventDB();
+        ezGLOBALS::$thirdEvents[] = new ezEventQue();
 	}
 
 	// 设置域名和网站目录
@@ -18,8 +19,6 @@ class ezWebServer {
 	}
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
-		$connection->close("com in");
-		return;
 		// REQUEST_URI.
 		$workerman_url_info = parse_url($_SERVER['REQUEST_URI']);
 		if (!$workerman_url_info) {
@@ -50,7 +49,6 @@ class ezWebServer {
 
 		}
 
-//		echo "visit page -> $workerman_file\n";
 		// File exsits.
 		if (is_file($workerman_file)) {
 			// Security check.
@@ -75,7 +73,7 @@ class ezWebServer {
 					// $_SERVER.
 					$_SERVER['REMOTE_ADDR'] = $connection->getRemoteIp();
 					$_SERVER['REMOTE_PORT'] = $connection->getRemotePort();
-//					include $workerman_file;
+					include $workerman_file;
 				} catch (\Exception $e) {
 					// Jump_exit?
 					if ($e->getMessage() != 'jump_exit') {
@@ -90,6 +88,13 @@ class ezWebServer {
 					$connection->close($content);
 				}
 				chdir($workerman_cwd);
+				include 'com/ezReload.php';
+				$ezReload = $GLOBALS['ezReload'];
+				echoDebug("reload is $ezReload");
+				if($ezReload) {
+//				    exit();
+                    posix_kill(getmypid(), SIGKILL);
+                }
 				return;
 			}
 
