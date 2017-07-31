@@ -16,6 +16,7 @@ class ezEventDB{
 		$conf = ezGLOBALS::$dbConf;
 		$maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
 		$this->syncLink = $this->connectDB($conf);
+		echoDebug("sync link is: ".$this->linkToKey($this->syncLink));
 		if(ezGLOBALS::$thirdEventsTime==0)return;
 		for($i=0;$i<$maxAsyncLinks;$i++){
 			$con = $this->connectDB($conf);
@@ -62,7 +63,12 @@ class ezEventDB{
 //			}
 		}else{
 			$row = mysqli_query($this->syncLink, $sql);
-			return $row->fetch_all(MYSQLI_ASSOC);
+			if(is_object($row))
+				return $row->fetch_all(MYSQLI_ASSOC);
+			else {
+				echo $this->syncLink->error . "\n";
+				echo $sql . "\n";
+			}
 		}
 	}
 
