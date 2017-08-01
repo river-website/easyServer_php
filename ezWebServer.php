@@ -63,41 +63,41 @@ class ezWebServer {
 			$workerman_file = realpath($workerman_file);
 			// Request php file.
 			if ($workerman_file_extension === 'php') {
-				ezGLOBALS::$curConnect = $connection;
-				$workerman_cwd = getcwd();
-				chdir($workerman_root_dir);
-				ini_set('display_errors', 'off');
-				ob_start();
-				// Try to include php file.
-				try {
-					// $_SERVER.
-					$_SERVER['REMOTE_ADDR'] = $connection->getRemoteIp();
-					$_SERVER['REMOTE_PORT'] = $connection->getRemotePort();
-					include $workerman_file;
-				} catch (\Exception $e) {
-					// Jump_exit?
-					if ($e->getMessage() != 'jump_exit') {
-						echo $e;
-					}
-				}
-				$content = ob_get_clean();
-				ini_set('display_errors', 'on');
-				if (strtolower($_SERVER['HTTP_CONNECTION']) === "keep-alive") {
-					$connection->send($content);
-				} else {
-					$connection->close($content);
-				}
-				chdir($workerman_cwd);
-				include 'com/ezReload.php';
-				$ezReload = $GLOBALS['ezReload'];
-				echoDebug("reload is $ezReload");
-				if($ezReload) {
-//				    exit();
-                    posix_kill(getmypid(), SIGKILL);
+                ezGLOBALS::$curConnect = $connection;
+                $workerman_cwd = getcwd();
+                chdir($workerman_root_dir);
+                ini_set('display_errors', 'off');
+                ob_start();
+                // Try to include php file.
+                try {
+                    // $_SERVER.
+                    $_SERVER['REMOTE_ADDR'] = $connection->getRemoteIp();
+                    $_SERVER['REMOTE_PORT'] = $connection->getRemotePort();
+                    include $workerman_file;
+                } catch (\Exception $e) {
+                    // Jump_exit?
+                    if ($e->getMessage() != 'jump_exit') {
+                        echo $e;
+                    }
                 }
-				return;
-			}
-
+                $content = ob_get_clean();
+                ini_set('display_errors', 'on');
+                if (strtolower($_SERVER['HTTP_CONNECTION']) === "keep-alive") {
+                    $connection->send($content);
+                } else {
+                    $connection->close($content);
+                }
+                chdir($workerman_cwd);
+                include 'com/ezReload.php';
+                $ezReload = $GLOBALS['ezReload'];
+                echoDebug("reload is $ezReload");
+                if ($ezReload) {
+                    ezGLOBALS::$status = ezServer::waitExit;
+//				    exit();
+                    //posix_kill(getmypid(), SIGKILL);
+                }
+                return;
+            }
 			// Send file to client.
 			return self::sendFile($connection, $workerman_file);
 		} else {

@@ -17,7 +17,8 @@ class ezGLOBALS{
 	static public $thirdEventsTime		= 1000;									// 0为没有异步sql池,
 	static public $thirdEvents			= array();
 	static public $dbEvent				= null;
-	static public $queEvent			= null;
+	static public $queEvent             = null;
+	static public $status               = ezServer::running;
 	static public $processName			= 'main process';
 	static public $debug				= true;
 	static public $dbConf				= array(

@@ -10,7 +10,11 @@ require 'com/ezFunc.php';
 
 class ezServer{
 
-	private $serverSocket 	= null;
+    const running           = 1;
+    const waitExit          = 2;
+    const exiting           = 3;
+
+    private $serverSocket 	= null;
 	private $host 			= null;
 	private $pids 			= array();
 
@@ -103,4 +107,7 @@ class ezServer{
 		$tcp->setOnMessage($this->onMessage);
 		ezGLOBALS::$event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
 	}
+	public function onSiganl($type){
+
+    }
 }
