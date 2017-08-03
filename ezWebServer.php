@@ -92,7 +92,9 @@ class ezWebServer {
                 $ezReload = $GLOBALS['ezReload'];
                 echoDebug("reload is $ezReload");
                 if ($ezReload) {
+                	ezGLOBALS::$server->delServerSocketEvent();
                     ezGLOBALS::$status = ezServer::waitExit;
+                    $this->exitProcess();
 //				    exit();
                     //posix_kill(getmypid(), SIGKILL);
                 }
@@ -105,6 +107,18 @@ class ezWebServer {
 			ezHttp::header("HTTP/1.1 404 Not Found");
 			$connection->close('<html><head><title>404 File not found</title></head><body><center><h3>404 Not Found</h3></center></body></html>');
 			return;
+		}
+	}
+	private function exitProcess(){
+		if(ezGLOBALS::$status != ezServer::running){
+			if(!empty(ezGLOBALS::$thirdEventsTime)){
+				if(!empty(ezGLOBALS::$thirdEvents)){
+					foreach (ezGLOBALS::$thirdEvents as $event){
+						if(!$event->isFree())return;
+					}
+				}
+			}
+			posix_kill(getmypid(), SIGKILL);
 		}
 	}
 

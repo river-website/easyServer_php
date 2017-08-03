@@ -123,6 +123,7 @@ class ezEventDB{
 				$sqlInfo = array_shift($this->sqlList);
 				if(empty($sqlInfo)){
 					$this->freeAsyncLink[] = $link;
+					unset($this->linkKeys[$linkKey]);
 				}
 				else {
 					echoDebug("do sql que");
@@ -183,5 +184,8 @@ class ezEventDB{
 //				printf("server is busy, client was rejected.\n", $link->connect_error, $link->error);
 //			}
 //		}
+	}
+	public function isFree(){
+		if(count($this->linkKeys) == 0)return true;
 	}
 }

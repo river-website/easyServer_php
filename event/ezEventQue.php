@@ -131,4 +131,7 @@ class ezEventQue{
     private function freeQueList(){
         $this->queList = array();
     }
+    public function isFree(){
+    	if(count($this->queList) == 0)return true;
+	}
 }

@@ -107,6 +107,12 @@ class ezServer{
 		$tcp->setOnMessage($this->onMessage);
 		ezGLOBALS::$event->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
 	}
+	public function delServerSocketEvent(){
+		if(empty($this->serverSocket))return;
+		if(empty(ezGLOBALS::$event))return;
+		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventRead);
+		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventWrite);
+	}
 	public function onSiganl($type){
 
     }
