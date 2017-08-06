@@ -74,11 +74,8 @@ class ezWebServer {
                     $_SERVER['REMOTE_ADDR'] = $connection->getRemoteIp();
                     $_SERVER['REMOTE_PORT'] = $connection->getRemotePort();
                     include $workerman_file;
-                } catch (\Exception $e) {
-                    // Jump_exit?
-                    if ($e->getMessage() != 'jump_exit') {
-                        echo $e;
-                    }
+                } catch (Exception $e) {
+                    echo $e->getMessage();
                 }
                 $content = ob_get_clean();
                 ini_set('display_errors', 'on');
@@ -111,13 +108,14 @@ class ezWebServer {
 	}
 	private function exitProcess(){
 		if(ezGLOBALS::$status != ezServer::running){
+            ezGLOBALS::$server->delServerSocketEvent();
 			if(!empty(ezGLOBALS::$thirdEventsTime)){
 				if(!empty(ezGLOBALS::$thirdEvents)){
 					foreach (ezGLOBALS::$thirdEvents as $event){
 						if(!$event->isFree())return;
 					}
 				}
-			}
+			}else if(!ezGLOBALS::$event->isFree())return;
 			posix_kill(getmypid(), SIGKILL);
 		}
 	}

@@ -19,6 +19,9 @@ class ezEvent{
 	public function __construct(){
 		$this->init();
 	}
+	public function isFree(){
+	    return $this->reactor->isFree();
+    }
 	private function init(){
 		if(extension_loaded('libevent')){
 			$this->reactor = new ezEventLibEvent();

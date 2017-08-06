@@ -72,6 +72,9 @@ class ezEventLibEvent{
 		}
 		return true;
 	}
+	public function isFree(){
+	    if(count($this->allEvent) == 0)return true;
+    }
 	// 删除一个监视资源，状态及事件处理
 	public function del($fd, $status){
 		if(!empty($this->allEvent[(int)$fd][$status])) {

@@ -65,9 +65,11 @@ class ezEventDB{
 			$row = mysqli_query($this->syncLink, $sql);
 			if(is_object($row))
 				return $row->fetch_all(MYSQLI_ASSOC);
+			else if($row == true)return;
 			else {
+			    var_dump($row);
 				echo $this->syncLink->error . "\n";
-				echo $sql . "\n";
+				echo "<br>$sql<br>";
 			}
 		}
 	}
