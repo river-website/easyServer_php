@@ -64,9 +64,11 @@ class ezServer{
             $pid = pcntl_fork();
             if($pid == 0) {
                 ezGLOBALS::$processName = 'work process';
-                ezGLOBALS::$event = new ezEvent();
-                ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
-                ezGLOBALS::$event->loop();
+                $event = new ezEvent();
+				$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+				if(ezGLOBALS::$checkStatusTime)
+					$event->add(ezGLOBALS::$checkStatusTime, ezEvent::eventTime, array($this, 'checkProcessStatus'));
+                $event->loop();
                 echoDebug("child pid exit event loop");
             }else{
                 echoDebug("child pid: $pid");
@@ -112,6 +114,18 @@ class ezServer{
 		if(empty(ezGLOBALS::$event))return;
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventRead);
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventWrite);
+	}
+	public function checkProcessStatus(){
+		if(ezGLOBALS::$status != ezServer::running) {
+//            ezGLOBALS::$server->delServerSocketEvent();
+			if (!empty(ezGLOBALS::$thirdEvents)) {
+				foreach (ezGLOBALS::$thirdEvents as $event) {
+					if (!$event->isFree()) return;
+				}
+			}
+			if (!ezGLOBALS::$event->isFree()) return;
+			posix_kill(getmypid(), SIGKILL);
+		}
 	}
 	public function onSiganl($type){
 

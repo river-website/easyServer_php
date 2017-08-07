@@ -63,7 +63,7 @@ class ezTCP{
 		if(!empty($this->sendBuffer)){
 			$data = $this->sendBuffer;
 			$this->sendBuffer = '';
-			$len = @fwrite($socket,$data);
+			$len = @fwrite($socket,$data,8192);
 			if($len <= 0){
 				if (!is_resource($this->socket) || feof($this->socket)) 
 					$this->destroy();
@@ -84,7 +84,7 @@ class ezTCP{
 		}
 		$data = $this->sendBuffer.$data;
 		if(ezGLOBALS::$server->protocol)$data = ezGLOBALS::$server->protocol->encode($data,$this);
-		$len = @fwrite($this->socket,$data);
+		$len = @fwrite($this->socket,$data,8192);
 		if($len == strlen($data)) {
 			$this->sendBuffer = '';
 			return true;

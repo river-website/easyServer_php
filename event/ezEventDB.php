@@ -17,7 +17,7 @@ class ezEventDB{
 		$maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
 		$this->syncLink = $this->connectDB($conf);
 		echoDebug("sync link is: ".$this->linkToKey($this->syncLink));
-		if(ezGLOBALS::$thirdEventsTime==0)return;
+		if(ezGLOBALS::$dbEventTime==0)return;
 		for($i=0;$i<$maxAsyncLinks;$i++){
 			$con = $this->connectDB($conf);
 			$this->asyncLinks[] = $con;
@@ -25,6 +25,7 @@ class ezEventDB{
 			echoDebug("link key is: ".$this->linkToKey($con));
 //			$this->que->sendMsg(ezQue::queDBConFree, $linkKey);
 		}
+		ezGLOBALS::$event->add(ezGLOBALS::$dbEventTime,ezEvent::eventTime, array($this,'loop'));
 	}
 	private function connectDB($conf){
 		$con = mysqli_connect($conf['host'], $conf['user'], $conf['password'], $conf['dataBase'], $conf['port']);

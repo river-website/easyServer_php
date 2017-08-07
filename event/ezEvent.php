@@ -13,14 +13,16 @@ class ezEvent{
     const eventClock		= 32;
     const eventExcept 		= 64;
 
-	private $reactor = null;
-	private $thirdEvents = null;
+	private $reactor 		= null;
+	private $thirdEvents 	= null;
+	private $userEvent		= -1;
 
 	public function __construct(){
+		ezGLOBALS::$event = $this;
 		$this->init();
 	}
 	public function isFree(){
-	    return $this->reactor->isFree();
+	    return ($this->userEvent>0)?false:true;
     }
 	private function init(){
 		if(extension_loaded('libevent')){
@@ -30,23 +32,20 @@ class ezEvent{
 		}
 		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
 			$thirdEvent->init();
-		if(ezGLOBALS::$thirdEventsTime)
-			$this->add(ezGLOBALS::$thirdEventsTime,ezEvent::eventTime, array($this,'onThirds'));
 	}
 	// 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){
 		$this->reactor->add($fd, $status, $func,$arg);
+		if($this->userEvent>=0)$this->userEvent++;
 	}
 	// 对外接口 删除一个监视资源，状态及事件处理
 	public function del($fd,$status){
 		$this->reactor->del($fd,$status);
+		if($this->userEvent>0)$this->userEvent--;
 	}
 	// 对外接口 开始监视资源
 	public function loop(){
+		$this->userEvent = 0;
 		$this->reactor->loop();
-	}
-	public function onThirds(){
-		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
-			$thirdEvent->loop();
 	}
 }

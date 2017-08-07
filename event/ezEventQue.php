@@ -61,10 +61,12 @@ class ezEventQue{
     private $status     = false;
     public function __construct(){
         ezGLOBALS::$queEvent = $this;
+		$this->freeStatus();
     }
 
     public function init(){
-
+		if(ezGLOBALS::$queEventTime==0)return;
+		ezGLOBALS::$event->add(ezGLOBALS::$queEventTime,ezEvent::eventTime, array($this,'loop'));
     }
     private function getStatus(){
         if(is_file(__DIR__.'/queLockFile')){
@@ -78,12 +80,13 @@ class ezEventQue{
         }
     }
     private function freeStatus(){
-        unlink(__DIR__.'/queLockFile');
+    	if(is_file(__DIR__.'/queLockFile'))
+        	unlink(__DIR__.'/queLockFile');
     }
     public function loop(){
 //        echoDebug("que loop running");
         if($this->count() == 0)return;
-//        echoDebug("que list >0");
+        echoDebug("que list >0");
         if(!$this->getStatus())
             return;
         echoDebug("que loop com in");

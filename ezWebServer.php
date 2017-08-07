@@ -3,6 +3,7 @@
 class ezWebServer {
 	private $serverRoot = array();
 	public function __construct($host){
+		set_error_handler(array($this,'errorHandle'));
 		$server = new ezServer('tcp://'.$host);
 		$server->onMessage = array($this, 'onMessage');
 		$server->protocol = new ezHTTP();
@@ -89,11 +90,8 @@ class ezWebServer {
                 $ezReload = $GLOBALS['ezReload'];
                 echoDebug("reload is $ezReload");
                 if ($ezReload) {
-                	ezGLOBALS::$server->delServerSocketEvent();
+//                	ezGLOBALS::$server->delServerSocketEvent();
                     ezGLOBALS::$status = ezServer::waitExit;
-                    $this->exitProcess();
-//				    exit();
-                    //posix_kill(getmypid(), SIGKILL);
                 }
                 return;
             }
@@ -106,18 +104,73 @@ class ezWebServer {
 			return;
 		}
 	}
-	private function exitProcess(){
-		if(ezGLOBALS::$status != ezServer::running){
-            ezGLOBALS::$server->delServerSocketEvent();
-			if(!empty(ezGLOBALS::$thirdEventsTime)){
-				if(!empty(ezGLOBALS::$thirdEvents)){
-					foreach (ezGLOBALS::$thirdEvents as $event){
-						if(!$event->isFree())return;
-					}
-				}
-			}else if(!ezGLOBALS::$event->isFree())return;
-			posix_kill(getmypid(), SIGKILL);
+	public function errorHandle($errno, $errstr, $errfile, $errline){
+		if(ezGLOBALS::getErrorIgnorePath(E_NOTICE,$errfile))return;
+		switch ($errno){
+			case E_ERROR:{
+				echo "easy E_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_WARNING:{
+				echo "easy E_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_PARSE:{
+				echo "easy E_PARSE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_NOTICE:{
+				echo "easy E_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_CORE_ERROR:{
+				echo "easy E_CORE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_CORE_WARNING:{
+				echo "easy E_CORE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_COMPILE_ERROR:{
+				echo "easy E_COMPILE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_COMPILE_WARNING:{
+				echo "easy E_COMPILE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_USER_ERROR:{
+				echo "easy E_USER_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_USER_WARNING:{
+				echo "easy E_USER_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_USER_NOTICE:{
+				echo "easy E_USER_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_STRICT:{
+				echo "easy E_STRICT -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_RECOVERABLE_ERROR:{
+				echo "easy E_RECOVERABLE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_DEPRECATED:{
+				echo "easy E_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_USER_DEPRECATED:{
+				echo "easy E_USER_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
+			case E_ALL:{
+				echo "easy E_ALL -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+			}
+				break;
 		}
 	}
-
 }
