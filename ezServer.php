@@ -12,7 +12,11 @@ class ezServer{
 
     const running           = 1;
     const waitExit          = 2;
-    const exiting           = 3;
+
+    const normal			= 0;
+    const exitAll			= 1;
+    const reload			= 2;
+    const smoothReload		= 4;
 
     private $serverSocket 	= null;
 	private $host 			= null;
@@ -47,7 +51,16 @@ class ezServer{
 		stream_set_blocking($this->serverSocket, 0);
 		echoDebug("server socket: " . $this->serverSocket);
 	}
+	private function back(){
+		$pid  = pcntl_fork();
+		if($pid > 0){
+			echoDebug("init process exit");
+			exit();
+		}
+		ezGLOBALS::$mainPid = getmypid();
+	}
 	public function start(){
+		$this->back();
         $this->createSocket();
         if(!ezGLOBALS::$multiProcess){
             ezGLOBALS::$event = new ezEvent();
@@ -80,9 +93,14 @@ class ezServer{
 	private function monitorWorkers(){
 		echoDebug("start monitor workers");
 		$oldPids = array();
-
 		while(true){
             $pid    = pcntl_wait($status, WUNTRACED);
+            include 'com/ezControlProcess.php';
+			if($GLOBALS['ezExit']){
+				foreach ($this->pids as $pid)
+					posix_kill($pid, SIGKILL);
+				exit();
+			}
             if(!empty($oldPids[(int)$pid])) {
                 unset($oldPids[(int)$pid]);
                 continue;
@@ -115,16 +133,31 @@ class ezServer{
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventRead);
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventWrite);
 	}
+	// 检查状态
 	public function checkProcessStatus(){
-		if(ezGLOBALS::$status != ezServer::running) {
-//            ezGLOBALS::$server->delServerSocketEvent();
-			if (!empty(ezGLOBALS::$thirdEvents)) {
-				foreach (ezGLOBALS::$thirdEvents as $event) {
-					if (!$event->isFree()) return;
+		include 'com/ezServerStatus.php';
+		if ($GLOBALS['ezServerStatus'] == ezServer::normal) return;
+		if(getmypid() == ezGLOBALS::$mainPid){
+			if ($GLOBALS['ezServerStatus'] == ezServer::exitAll){
+
+			}
+		}else {
+			if ($GLOBALS['ezServerStatus'] == ezServer::exitAll) exit();
+			if ($GLOBALS['ezServerStatus'] == ezServer::reload) exit();
+			if ($GLOBALS['ezServerStatus'] == ezServer::smoothReload) {
+				if (ezGLOBALS::$status == ezServer::waitExit) {
+					// 开始平滑重启
+					// 释放相关资源
+					ezGLOBALS::$server->delServerSocketEvent();
+					if (!empty(ezGLOBALS::$thirdEvents)) {
+						foreach (ezGLOBALS::$thirdEvents as $event) {
+							if (!$event->isFree()) return;
+						}
+					}
+					if (!ezGLOBALS::$event->isFree()) return;
+					posix_kill(getmypid(), SIGKILL);
 				}
 			}
-			if (!ezGLOBALS::$event->isFree()) return;
-			posix_kill(getmypid(), SIGKILL);
 		}
 	}
 	public function onSiganl($type){

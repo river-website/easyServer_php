@@ -58,7 +58,6 @@ class ezEventQue{
 	// 内存实现方式,每个进程处理自己的队列
     private $queList    = array();
     private $queID      = 0;
-    private $status     = false;
     public function __construct(){
         ezGLOBALS::$queEvent = $this;
 		$this->freeStatus();
@@ -69,6 +68,7 @@ class ezEventQue{
 		ezGLOBALS::$event->add(ezGLOBALS::$queEventTime,ezEvent::eventTime, array($this,'loop'));
     }
     private function getStatus(){
+        return true;
         if(is_file(__DIR__.'/queLockFile')){
             return false;
         }else{
@@ -113,10 +113,6 @@ class ezEventQue{
             }
         }else{
             $this->freeQueList();
-            if(ezGLOBALS::$status == ezServer::waitExit) {
-                echoDebug("que loop exit process");
-                posix_kill(getmypid(), SIGKILL);
-            }
         }
     }
 	public function add($func,$args=null){

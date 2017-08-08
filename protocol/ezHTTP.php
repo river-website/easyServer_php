@@ -239,7 +239,7 @@ class ezHttp
 	/**
 	 * 设置http头
 	 *
-	 * @return bool|void
+	 * return bool|void
 	 */
 	public static function header($content, $replace = true, $http_response_code = 0)
 	{

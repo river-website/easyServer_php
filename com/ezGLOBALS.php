@@ -8,6 +8,7 @@
 class ezGLOBALS{
 	static private $data				= array();
 	static private $errorIgnorePaths	= array();
+	static public $mainPid				= null;
 	static public $server				= null;
 	static public $os					= null;
 	static public $curConnect			= null;
@@ -20,7 +21,7 @@ class ezGLOBALS{
 	static public $dbEventTime			= 1;
 	static public $queEvent           = null;
 	static public $queEventTime       = 10;
-	static public $checkStatusTime		= 100;
+	static public $checkStatusTime		= 1000;
 	static public $status             = ezServer::running;
 	static public $processName			= 'main process';
 	static public $debug				= true;
