@@ -19,12 +19,14 @@ class ezGLOBALS{
 	static public $thirdEvents			= array();
 	static public $dbEvent				= null;
 	static public $dbEventTime			= 1;
-	static public $queEvent           = null;
-	static public $queEventTime       = 10;
+	static public $queEvent             = null;
+	static public $runTimePath          = '/phpstudy/www/easyServer/runTime/';
+	static public $queEventTime         = 10;
 	static public $checkStatusTime		= 1000;
-	static public $status             = ezServer::running;
+	static public $status               = ezServer::running;
 	static public $processName			= 'main process';
 	static public $debug				= true;
+	static public $log                  = true;
 	static public $dbConf				= array(
 												'host' => '127.0.0.1',
 												'user' => 'root',

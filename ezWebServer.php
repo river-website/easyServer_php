@@ -86,6 +86,8 @@ class ezWebServer {
                     $connection->close($content);
                 }
                 chdir($workerman_cwd);
+                include 'com/ezServerStatus.php';
+                ezGLOBALS::$status = ($GLOBALS['ezServerStatus'] == ezServer::normal)?ezServer::running:ezServer::waitExit;
                 return;
             }
 			// Send file to client.

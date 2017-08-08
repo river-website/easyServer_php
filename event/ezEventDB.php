@@ -16,13 +16,13 @@ class ezEventDB{
 		$conf = ezGLOBALS::$dbConf;
 		$maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
 		$this->syncLink = $this->connectDB($conf);
-		echoDebug("sync link is: ".$this->linkToKey($this->syncLink));
+		ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
 		if(ezGLOBALS::$dbEventTime==0)return;
 		for($i=0;$i<$maxAsyncLinks;$i++){
 			$con = $this->connectDB($conf);
 			$this->asyncLinks[] = $con;
 			$this->freeAsyncLink[] = $con;
-			echoDebug("link key is: ".$this->linkToKey($con));
+			ezDebugLog("link key is: ".$this->linkToKey($con));
 //			$this->que->sendMsg(ezQue::queDBConFree, $linkKey);
 		}
 		ezGLOBALS::$event->add(ezGLOBALS::$dbEventTime,ezEvent::eventTime, array($this,'loop'));
@@ -114,7 +114,7 @@ class ezEventDB{
 			} elseif ($re < 1)
 				return;
 
-			echoDebug("read ready!");
+			ezDebugLog("read ready!");
 			foreach ($read as $link) {
 				$sql_result = $link->reap_async_query();
 				if (is_object($sql_result))
@@ -129,15 +129,15 @@ class ezEventDB{
 					unset($this->linkKeys[$linkKey]);
 				}
 				else {
-					echoDebug("do sql que");
+					ezDebugLog("do sql que");
 					mysqli_query($link, $sqlInfo[0], MYSQLI_ASYNC);
 					$this->linkKeys[$linkKey] = array($sqlInfo[1], $sqlInfo[2]);
 				}
 				$func = $linkInfo[0];
 				if(empty($func))continue;
 				$socketCon = $linkInfo[1];
-				echoDebug($socketCon->getSocket());
-				echoDebug($linkKey);
+				ezDebugLog($socketCon->getSocket());
+				ezDebugLog($linkKey);
 				$socketCon->setImmedSend();
 				ob_start();
 				try {
@@ -151,7 +151,7 @@ class ezEventDB{
 				} else {
 					$socketCon->close($contents);
 				}
-				echoDebug("close");
+				ezDebugLog("close");
 			}
 			return;
 		}

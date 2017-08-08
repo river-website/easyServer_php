@@ -29,7 +29,7 @@ class ezEventLibEvent{
                 }else{
                     $time = $fd * 1000;
                 }
-                echoDebug("add time event,time out is: $fd");
+                ezDebugLog("add time event,time out is: $fd");
 				$event = event_new();
 				if (!event_set($event, 0, EV_TIMEOUT,array($this,'onTime'), array($event ,$fd,$status,$func,$arg)))
 					return false;

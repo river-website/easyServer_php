@@ -84,12 +84,12 @@ class ezEventQue{
         	unlink(__DIR__.'/queLockFile');
     }
     public function loop(){
-//        echoDebug("que loop running");
+//        ezDebugLog("que loop running");
         if($this->count() == 0)return;
-        echoDebug("que list >0");
+        ezDebugLog("que list >0");
         if(!$this->getStatus())
             return;
-        echoDebug("que loop com in");
+        ezDebugLog("que loop com in");
         $pid = pcntl_fork();
         if($pid == 0) {
             ezGLOBALS::$processName = "ques process ";
@@ -100,7 +100,8 @@ class ezEventQue{
                 $que = $this->get();
                 if (empty($que)) {
                     $this->freeStatus();
-                    echoDebug("ques process exit\n");
+                    ezDebugLog("ques process exit\n");
+                    ezGLOBALS::$server->delChildPid(getmypid());
                     posix_kill(getmypid(),SIGKILL);
 //                    exit();
                 };
@@ -113,11 +114,12 @@ class ezEventQue{
             }
         }else{
             $this->freeQueList();
+            ezGLOBALS::$server->addChildPid($pid);
         }
     }
 	public function add($func,$args=null){
         if(empty($func))return false;
-        echoDebug("que add event");
+        ezDebugLog("que add event");
         $this->queList[] = array($this->queID++,$func,$args);
         return true;
     }

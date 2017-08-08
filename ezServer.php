@@ -49,12 +49,12 @@ class ezServer{
 			exit();
 		}
 		stream_set_blocking($this->serverSocket, 0);
-		echoDebug("server socket: " . $this->serverSocket);
+		ezDebugLog("server socket: " . $this->serverSocket);
 	}
 	private function back(){
 		$pid  = pcntl_fork();
 		if($pid > 0){
-			echoDebug("init process exit");
+			ezDebugLog("init process exit");
 			exit();
 		}
 		ezGLOBALS::$mainPid = getmypid();
@@ -66,52 +66,57 @@ class ezServer{
             ezGLOBALS::$event = new ezEvent();
             ezGLOBALS::$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
             ezGLOBALS::$event->loop();
-            echoDebug("main pid exit event loop");
+            ezDebugLog("main pid exit event loop");
             exit();
         }
 		$this->forks();
 		$this->monitorWorkers();
 	}
 	private function forks(){
+	    if(is_file(ezGLOBALS::$runTimePath.'childPids'))
+	        unlink(ezGLOBALS::$runTimePath.'childPids');
         for($i=0;$i<ezGLOBALS::$processCount;$i++){
-            $pid = pcntl_fork();
-            if($pid == 0) {
-                ezGLOBALS::$processName = 'work process';
-                $event = new ezEvent();
-				$event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
-				if(ezGLOBALS::$checkStatusTime)
-					$event->add(ezGLOBALS::$checkStatusTime, ezEvent::eventTime, array($this, 'checkProcessStatus'));
-                $event->loop();
-                echoDebug("child pid exit event loop");
-            }else{
-                echoDebug("child pid: $pid");
-                $this->pids[] = $pid;
-            }
+            $this->forkOne();
         }
     }
+    public function forkOne(){
+        $pid = pcntl_fork();
+        if($pid == 0) {
+            ezGLOBALS::$processName = 'work process';
+            $event = new ezEvent();
+            $event->add($this->serverSocket, ezEvent::eventRead, array($this, 'onAccept'));
+            if(ezGLOBALS::$checkStatusTime)
+                $event->add(ezGLOBALS::$checkStatusTime, ezEvent::eventTime, array($this, 'checkProcessStatus'));
+            $event->loop();
+            ezDebugLog("child pid exit event loop");
+            exit();
+        }else{
+            ezDebugLog("child pid: $pid");
+            $this->pids[] = $pid;
+            $this->addChildPid($pid);
+        }
+    }
+    public function addChildPid($pid){
+        $childPids = $this->getRunTimeData('childPids');
+        if(empty($childPids) || count($childPids) == 0)
+            $childPids = array((int)$pid=>$pid);
+        else $childPids[(int)$pid] = $pid;
+        $this->setRunTimeData($childPids,'childPids');
+    }
 
+    public function delChildPid($pid){
+        $childPids = $this->getRunTimeData('childPids');
+        if(empty($childPids) || count($childPids) == 0)
+            return;
+       if(empty($childPids[$pid]))return;
+       unset($childPids[$pid]);
+        $this->setRunTimeData($childPids,'childPids');
+    }
 	private function monitorWorkers(){
-		echoDebug("start monitor workers");
-		$oldPids = array();
+		ezDebugLog("start monitor workers");
 		while(true){
             $pid    = pcntl_wait($status, WUNTRACED);
-            include 'com/ezControlProcess.php';
-			if($GLOBALS['ezExit']){
-				foreach ($this->pids as $pid)
-					posix_kill($pid, SIGKILL);
-				exit();
-			}
-            if(!empty($oldPids[(int)$pid])) {
-                unset($oldPids[(int)$pid]);
-                continue;
-            }
-            $oldPids = array();
-            foreach ($this->pids as $pid) {
-                posix_kill($pid, SIGKILL);
-                $oldPids[(int)$pid] = $pid;
-            }
-            $this->pids = array();
-            $this->forks();
+            $this->checkProcessStatus();
         }
 	}
 	// 当收到连接时
@@ -119,8 +124,8 @@ class ezServer{
 		$new_socket = @stream_socket_accept($socket, 0, $remote_address);
 		if (!$new_socket) 
 			return;
-		echoDebug("connect socket: ".$new_socket);
-		echoDebug("remote address: ".$remote_address);
+		ezDebugLog("connect socket: ".$new_socket);
+		ezDebugLog("remote address: ".$remote_address);
 		stream_set_blocking($new_socket,0);
 
 		$tcp = new ezTCP($new_socket,$remote_address);
@@ -133,17 +138,63 @@ class ezServer{
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventRead);
 		ezGLOBALS::$event->del($this->serverSocket,ezEvent::eventWrite);
 	}
+	public function setRunTimeData($data,$file){
+        file_put_contents(ezGLOBALS::$runTimePath.$file,serialize($data));
+    }
+    public function getRunTimeData($file){
+	    if(is_file(ezGLOBALS::$runTimePath.$file))
+            return unserialize(file_get_contents(ezGLOBALS::$runTimePath.$file));
+    }
 	// 检查状态
 	public function checkProcessStatus(){
 		include 'com/ezServerStatus.php';
-		if ($GLOBALS['ezServerStatus'] == ezServer::normal) return;
 		if(getmypid() == ezGLOBALS::$mainPid){
 			if ($GLOBALS['ezServerStatus'] == ezServer::exitAll){
-
-			}
+                $childPids = $this->getRunTimeData('childPids');
+                if(empty($childPids) || count($childPids) == 0)exit();
+                while(count($childPids)>0){
+                    $live = array();
+                    foreach ($childPids as $key=>$pid) {
+                        if (posix_kill($pid, 0)) {
+                            posix_kill($pid, SIGKILL);
+                            $live[$key] = $pid;
+                        }
+                    }
+                    $childPids = $live;
+                }
+                exit();
+            }else if($GLOBALS['ezServerStatus'] == ezServer::reload){
+                $childPids = $this->getRunTimeData('childPids');
+                if(empty($childPids) || count($childPids) == 0){
+                    $this->forks();
+                    return;
+                }
+                while(count($childPids)>0) {
+                    $live = array();
+                    foreach ($childPids as $key => $pid) {
+                        if (posix_kill($pid, 0)) {
+                            posix_kill($pid, SIGKILL);
+                            $live[$key] = $pid;
+                        }
+                    }
+                    $childPids = $live;
+                }
+                $this->forks();
+            }else if($GLOBALS['ezServerStatus'] == ezServer::smoothReload){
+                $this->forkOne();
+            }else if($GLOBALS['ezServerStatus'] == ezServer::normal) {
+                $this->forkOne();
+            }
 		}else {
-			if ($GLOBALS['ezServerStatus'] == ezServer::exitAll) exit();
-			if ($GLOBALS['ezServerStatus'] == ezServer::reload) exit();
+            if ($GLOBALS['ezServerStatus'] == ezServer::normal) return;
+            if ($GLOBALS['ezServerStatus'] == ezServer::exitAll){
+                ezGLOBALS::$server->delServerSocketEvent(getmypid());
+                exit();
+            }
+			if ($GLOBALS['ezServerStatus'] == ezServer::reload){
+                ezGLOBALS::$server->delServerSocketEvent(getmypid());
+                exit();
+            }
 			if ($GLOBALS['ezServerStatus'] == ezServer::smoothReload) {
 				if (ezGLOBALS::$status == ezServer::waitExit) {
 					// 开始平滑重启
@@ -155,6 +206,7 @@ class ezServer{
 						}
 					}
 					if (!ezGLOBALS::$event->isFree()) return;
+                    ezGLOBALS::$server->delServerSocketEvent(getmypid());
 					posix_kill(getmypid(), SIGKILL);
 				}
 			}
