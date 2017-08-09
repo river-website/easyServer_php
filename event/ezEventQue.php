@@ -92,7 +92,7 @@ class ezEventQue{
         ezDebugLog("que loop com in");
         $pid = pcntl_fork();
         if($pid == 0) {
-            ezGLOBALS::$processName = "ques process ";
+            ezGLOBALS::$processName = "ques process";
 //            ezGLOBALS::$dbEvent = new ezEventDB();
 //            ezGLOBALS::$dbEvent->init();
 //            ezGLOBALS::$event->del(ezGLOBALS::$server->serverSocket,ezEvent::eventRead);

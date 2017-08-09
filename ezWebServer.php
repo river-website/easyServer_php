@@ -86,8 +86,8 @@ class ezWebServer {
                     $connection->close($content);
                 }
                 chdir($workerman_cwd);
-                include 'com/ezServerStatus.php';
-                ezGLOBALS::$status = ($GLOBALS['ezServerStatus'] == ezServer::normal)?ezServer::running:ezServer::waitExit;
+//                include 'com/ezServerStatus.php';
+//                ezGLOBALS::$status = ($GLOBALS['ezServerStatus'] == ezServer::normal)?ezServer::running:ezServer::waitExit;
                 return;
             }
 			// Send file to client.
@@ -101,71 +101,75 @@ class ezWebServer {
 	}
 	public function errorHandle($errno, $errstr, $errfile, $errline){
 		if(ezGLOBALS::getErrorIgnorePath(E_NOTICE,$errfile))return;
+		$msg = '';
 		switch ($errno){
 			case E_ERROR:{
-				echo "easy E_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg = "easy E_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_WARNING:{
-				echo "easy E_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_PARSE:{
-				echo "easy E_PARSE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_PARSE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_NOTICE:{
-				echo "easy E_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_CORE_ERROR:{
-				echo "easy E_CORE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_CORE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_CORE_WARNING:{
-				echo "easy E_CORE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_CORE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_COMPILE_ERROR:{
-				echo "easy E_COMPILE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_COMPILE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_COMPILE_WARNING:{
-				echo "easy E_COMPILE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_COMPILE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_USER_ERROR:{
-				echo "easy E_USER_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_USER_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_USER_WARNING:{
-				echo "easy E_USER_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_USER_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_USER_NOTICE:{
-				echo "easy E_USER_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_USER_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_STRICT:{
-				echo "easy E_STRICT -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_STRICT -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_RECOVERABLE_ERROR:{
-				echo "easy E_RECOVERABLE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_RECOVERABLE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_DEPRECATED:{
-				echo "easy E_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_USER_DEPRECATED:{
-				echo "easy E_USER_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_USER_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 			case E_ALL:{
-				echo "easy E_ALL -> $errstr ; file -> $errfile ; errline -> $errline ; <br>";
+				$msg =  "easy E_ALL -> $errstr ; file -> $errfile ; errline -> $errline ; ";
 			}
 				break;
 		}
+		if(strstr($errfile,__DIR__))
+			ezServerLog($msg);
+		else echo $msg.'<br>';
 	}
 }

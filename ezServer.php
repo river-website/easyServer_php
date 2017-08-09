@@ -192,11 +192,13 @@ class ezServer{
                 exit();
             }
 			if ($GLOBALS['ezServerStatus'] == ezServer::reload){
-                ezGLOBALS::$server->delServerSocketEvent(getmypid());
-                exit();
+				if (!empty(ezGLOBALS::$curConnect)) {
+					ezGLOBALS::$server->delServerSocketEvent(getmypid());
+					exit();
+				}
             }
 			if ($GLOBALS['ezServerStatus'] == ezServer::smoothReload) {
-				if (ezGLOBALS::$status == ezServer::waitExit) {
+				if (!empty(ezGLOBALS::$curConnect)) {
 					// 开始平滑重启
 					// 释放相关资源
 					ezGLOBALS::$server->delServerSocketEvent();
