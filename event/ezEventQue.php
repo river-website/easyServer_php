@@ -93,9 +93,8 @@ class ezEventQue{
         $pid = pcntl_fork();
         if($pid == 0) {
             ezGLOBALS::$processName = "ques process";
-//            ezGLOBALS::$dbEvent = new ezEventDB();
-//            ezGLOBALS::$dbEvent->init();
-//            ezGLOBALS::$event->del(ezGLOBALS::$server->serverSocket,ezEvent::eventRead);
+            ezGLOBALS::$dbEvent->bakLinks();
+            ezGLOBALS::$dbEvent->createSync();
             while(true){
                 $que = $this->get();
                 if (empty($que)) {
@@ -122,6 +121,21 @@ class ezEventQue{
         ezDebugLog("que add event");
         $this->queList[] = array($this->queID++,$func,$args);
         return true;
+    }
+    public function back($func,$args= null){
+	    if(empty($func))return false;
+	    $pid = pcntl_fork();
+	    if($pid == 0){
+	        ezGLOBALS::$processName = 'back process';
+	        ezServerLog("start back task");
+            ezGLOBALS::$dbEvent->bakLinks();
+            ezGLOBALS::$dbEvent->createSync();
+	        call_user_func_array($func,array($args));
+	        ezServerLog("back task exit");
+            posix_kill(getmypid(),SIGKILL);
+        }else{
+            ezGLOBALS::$server->addChildPid($pid);
+        }
     }
     private function get(){
         return array_shift($this->queList);

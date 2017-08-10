@@ -5,8 +5,9 @@ class ezEventDB{
 	private $syncLink 			= null;
 	private $asyncLinks 		= array();
 	private $linkKeys 			= array();
-	private $freeAsyncLink 	= array();
+	private $freeAsyncLink 	    = array();
 	private $sqlList 			= array();
+	private $bakLink            = array();
 	private $time				= 0;
 	public function __construct(){
 		ezGLOBALS::$dbEvent = $this;
@@ -14,9 +15,9 @@ class ezEventDB{
 	}
 	public function init(){
 		$conf = ezGLOBALS::$dbConf;
-		$maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
-		$this->syncLink = $this->connectDB($conf);
-		ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
+        $maxAsyncLinks = ezGLOBALS::$maxAsyncLinks;
+        $this->syncLink = $this->connectDB($conf);
+        ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
 		if(ezGLOBALS::$dbEventTime==0)return;
 		for($i=0;$i<$maxAsyncLinks;$i++){
 			$con = $this->connectDB($conf);
@@ -32,6 +33,24 @@ class ezEventDB{
 		if (!$con)throw new Exception(mysqli_error());
 		return $con;
 	}
+	public function bakLinks(){
+        $this->bakLink[] = $this->syncLink;
+        $this->bakLink[] = $this->asyncLinks;
+        $this->bakLink[] = $this->linkKeys;
+        $this->bakLink[] = $this->freeAsyncLink;
+        $this->bakLink[] = $this->sqlList;
+
+	    $this->syncLink = null;
+        $this->asyncLinks = null;
+        $this->linkKeys = null;
+        $this->freeAsyncLink = null;
+        $this->sqlList = null;
+    }
+    public function createSync(){
+        $conf = ezGLOBALS::$dbConf;
+        $this->syncLink = $this->connectDB($conf);
+        ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
+    }
 	private function linkToKey($link){
 		return $link->thread_id;
 	}

@@ -58,7 +58,7 @@ class ezEventLibEvent{
 			case ezEvent::eventRead:
 			case ezEvent::eventWrite: {
 				$event = event_new();
-				if (!event_set($event, $fd, $status | EV_PERSIST, $func, array($fd, $arg)))
+				if (!event_set($event, $fd, $status | EV_PERSIST, $func, array($arg)))
 					return false;
 				if (!event_base_set($event, $this->base))
 					return false;
