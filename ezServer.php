@@ -116,6 +116,7 @@ class ezServer{
 		ezDebugLog("start monitor workers");
 		while(true){
             $pid    = pcntl_wait($status, WUNTRACED);
+            ezDebugLog("recv child process $pid exit");
             $this->checkProcessStatus();
         }
 	}
@@ -150,6 +151,7 @@ class ezServer{
 		include 'com/ezServerStatus.php';
 		if(getmypid() == ezGLOBALS::$mainPid){
 			if ($GLOBALS['ezServerStatus'] == ezServer::exitAll){
+				ezServerLog("will exit all");
                 $childPids = $this->getRunTimeData('childPids');
                 if(empty($childPids) || count($childPids) == 0)exit();
                 while(count($childPids)>0){
