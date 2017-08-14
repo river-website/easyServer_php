@@ -168,8 +168,8 @@ class ezWebServer {
 			}
 				break;
 		}
-		if(strstr($errfile,__DIR__))
+//		if(strstr($errfile,__DIR__))
 			ezServerLog($msg);
-		else echo $msg.'<br>';
+//		else echo $msg.'<br>';
 	}
 }
