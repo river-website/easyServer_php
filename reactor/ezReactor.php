@@ -3,7 +3,7 @@ require 'ezEventLibEvent.php';
 require 'ezEventSelect.php';
 
 // 事件分发类
-class ezEvent{
+class ezReactor{
 
 	const eventTime 		= 1;
 	const eventRead 		= 2;

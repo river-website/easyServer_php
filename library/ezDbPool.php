@@ -1,6 +1,6 @@
 <?php
 
-class ezEventDB{
+class ezDbPool{
 //	public $que = null;
 	private $syncLink 			= null;
 	private $asyncLinks 		= array();

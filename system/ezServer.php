@@ -18,6 +18,22 @@ class ezServer{
     const reload			= 2;
     const smoothReload		= 4;
 
+    private $data				= array();
+    private $errorIgnorePaths	= array();
+    private $os					= null;
+    private $log                = true;
+    private $runTimePath        = '/phpstudy/test/easyServer/runTime';
+    private $logFile            = '/log/log-$date.log';
+    private $processName	    = 'main process';
+    private $pid                = 0;
+    private $debug				= true;
+    private $mainPid            = 0;
+    private $multiProcess 		= true;
+    private $processCount 		= 1;
+    private $status             = ezServer::running;
+    private $reactor		    = null;
+
+
     private $serverSocket 	= null;
 	private $host 			= null;
 	private $pids 			= array();
@@ -29,11 +45,63 @@ class ezServer{
 	public $onConnect 		= null;
 	public $onClose 		= null;
 
-	public function __construct($host){
-		$this->host = $host;
-		ezGLOBALS::$os = $this->getOS();
-		ezGLOBALS::$server = $this;
-	}
+	static public function getInterface(){
+	    static $server;
+	    if(empty($server))
+	        $server = new ezServer();
+	    return $server;
+    }
+    public function __construct(){
+	    $this->mainPid = getmypid();
+        $this->os = $this->getOS();
+    }
+    public function get($key){
+        if(isset($this->data[$key])) {
+            $value = $this->data[$key];
+            if($value['time']>time())
+                return $value['data'];
+        }
+    }
+    public function set($key,$value,$time=315360000){
+        $this->data[$key] = array('time'=>$time+time(),'data'=>$value);
+    }
+    public function addErrorIgnorePath($errno,$path){
+        $this->errorIgnorePaths[$errno][$path] = true;
+    }
+    public function delErrorIgnorePath($errno,$path){
+        if(isset($this->errorIgnorePaths[$errno][$path]))
+            unset($this->errorIgnorePaths[$errno][$path]);
+    }
+    public function getErrorIgnorePath($errno,$paths){
+        if(empty($this->errorIgnorePaths[$errno]))
+            return false;
+        foreach ($this->errorIgnorePaths[$errno] as $path=>$value){
+            if(strstr($paths,$path) != false)
+                return true;
+        }
+        return false;
+    }
+    public function log($msg){
+        if($this->log){
+            $time = time();
+            $date = date('Y-m-d',$time);
+            $time = date('h-M-s',$time);
+            $file = $this->runTimePath.str_replace('$date',$date,$this->logFile);
+            $pid = $this->pid;
+            file_put_contents($file,$this->processName."[$pid] $time -> $msg\n",FILE_APPEND);
+        }
+    }
+    public function debugLog($msg){
+        if($this->debug){
+            $this->log($msg);
+        }
+    }
+
+
+    public function setHost($host = 'tcp://0.0.0.0:80'){
+        $this->host = $host;
+    }
+
 	// 获取操作系统
 	private function getOS(){
 		// windows or linux
@@ -60,7 +128,7 @@ class ezServer{
 		ezGLOBALS::$mainPid = getmypid();
 	}
 	public function start(){
-		$this->back();
+        $this->back();
         $this->createSocket();
         if(!ezGLOBALS::$multiProcess){
             ezGLOBALS::$event = new ezEvent();

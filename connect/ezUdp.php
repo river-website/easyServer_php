@@ -1,6 +1,6 @@
 <?php
 
-class ezTCP{
+class ezUdp{
 	private $socket 			= null;
 	private $remote_address 	= null;
 	private $onMessage 		= null;

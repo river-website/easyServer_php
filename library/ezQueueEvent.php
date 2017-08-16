@@ -6,7 +6,7 @@
  * Time: 18:06
  */
 
-class ezEventQue{
+class ezQueueEvent{
 //	const queDBConFree  = 1;
 //	const queDBConBusy  = 2;
 //	const queDBSql 		= 3;
