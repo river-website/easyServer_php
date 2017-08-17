@@ -1,14 +1,12 @@
 <?php
+require 'protocol/ezHttp.php';
 
 class ezWebServer {
 	private $serverRoot = array();
 	public function __construct($host){
-		set_error_handler(array($this,'errorHandle'));
-		$server = new ezServer('tcp://'.$host);
+		$server = ezServer::getInterface();
 		$server->onMessage = array($this, 'onMessage');
-		$server->protocol = new ezHTTP();
-        ezGLOBALS::$thirdEvents[] = new ezEventDB();
-        ezGLOBALS::$thirdEvents[] = new ezEventQue();
+		$server->protocol = new ezHttp();
 	}
 
 	// 设置域名和网站目录
@@ -16,7 +14,10 @@ class ezWebServer {
 		$this->serverRoot[$webSite] = $path;
 	}
 	public function start(){
-		ezGLOBALS::$server->start();
+		ezServer::getInterface()->init();
+		ezDbPool::getInterface()->init();
+		ezQueueEvent::getInterface()->init();
+		ezServer::getInterface()->loop();
 	}
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
@@ -64,7 +65,7 @@ class ezWebServer {
 			$workerman_file = realpath($workerman_file);
 			// Request php file.
 			if ($workerman_file_extension === 'php') {
-                ezGLOBALS::$curConnect = $connection;
+                ezServer::getInterface()->curConnect = $connection;
                 $workerman_cwd = getcwd();
                 chdir($workerman_root_dir);
                 ini_set('display_errors', 'off');
@@ -86,8 +87,6 @@ class ezWebServer {
                     $connection->close($content);
                 }
                 chdir($workerman_cwd);
-//                include 'com/ezServerStatus.php';
-//                ezGLOBALS::$status = ($GLOBALS['ezServerStatus'] == ezServer::normal)?ezServer::running:ezServer::waitExit;
                 return;
             }
 			// Send file to client.
@@ -99,77 +98,5 @@ class ezWebServer {
 			return;
 		}
 	}
-	public function errorHandle($errno, $errstr, $errfile, $errline){
-		if(ezGLOBALS::getErrorIgnorePath(E_NOTICE,$errfile))return;
-		$msg = '';
-		switch ($errno){
-			case E_ERROR:{
-				$msg = "easy E_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_WARNING:{
-				$msg =  "easy E_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_PARSE:{
-				$msg =  "easy E_PARSE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_NOTICE:{
-				$msg =  "easy E_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_CORE_ERROR:{
-				$msg =  "easy E_CORE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_CORE_WARNING:{
-				$msg =  "easy E_CORE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_COMPILE_ERROR:{
-				$msg =  "easy E_COMPILE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_COMPILE_WARNING:{
-				$msg =  "easy E_COMPILE_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_USER_ERROR:{
-				$msg =  "easy E_USER_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_USER_WARNING:{
-				$msg =  "easy E_USER_WARNING -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_USER_NOTICE:{
-				$msg =  "easy E_USER_NOTICE -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_STRICT:{
-				$msg =  "easy E_STRICT -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_RECOVERABLE_ERROR:{
-				$msg =  "easy E_RECOVERABLE_ERROR -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_DEPRECATED:{
-				$msg =  "easy E_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_USER_DEPRECATED:{
-				$msg =  "easy E_USER_DEPRECATED -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-			case E_ALL:{
-				$msg =  "easy E_ALL -> $errstr ; file -> $errfile ; errline -> $errline ; ";
-			}
-				break;
-		}
-//		if(strstr($errfile,__DIR__))
-			ezServerLog($msg);
-//		else echo $msg.'<br>';
-	}
+
 }

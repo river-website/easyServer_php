@@ -6,7 +6,7 @@
  * Time: 17:03
  */
 
-class ezEventSelect{
+class ezReactorSelect{
 
 	private $allEvent 		= array();
 	private $readEvent 	= array();
@@ -17,19 +17,19 @@ class ezEventSelect{
 	public function add($fd, $status, $func, $arg = null){
 		$fdKey = (int)$fd;
 		switch ($status) {
-			case ezEvent::eventRead:
+			case ezReactor::eventRead:
 				$this->allEvent[$fdKey][$status] = array($func,$arg);
 				$this->readEvent[$fdKey] = $fd;
 				break;
-			case ezEvent::eventWrite:
+			case ezReactor::eventWrite:
 				$this->allEvent[$fdKey][$status] = array($func,$arg);
 				$this->writeEvent[$fdKey] = $fd;
 				break;
-			case ezEvent::eventExcept:
+			case ezReactor::eventExcept:
 				$this->allEvent[$fdKey][$status] = array($func,$arg);
 				$this->exceptEvent[$fdKey] = $fd;
 				break;
-			case ezEvent::eventSignal: {
+			case ezReactor::eventSignal: {
 				// Windows not support signal.
 				if (DIRECTORY_SEPARATOR !== '/') {
 					return false;
@@ -48,19 +48,19 @@ class ezEventSelect{
 		if(!empty($this->allEvent[$fd_key][$status]))
 			unset($this->allEvent[$fd_key][$status]);
 		switch ($status) {
-			case ezEvent::eventRead:
+			case ezReactor::eventRead:
 				if(!empty($this->readEvent[$fd_key]))
 					unset($this->readEvent[$fd_key]);
 				break;
-			case ezEvent::eventWrite:
+			case ezReactor::eventWrite:
 				if(!empty($this->writeEvent[$fd_key]))
 					unset($this->writeEvent[$fd_key]);
 				break;
-			case ezEvent::eventExcept:
+			case ezReactor::eventExcept:
 				if(!empty($this->exceptEvent[$fd_key]))
 					unset($this->exceptEvent[$fd_key]);
 				break;
-			case ezEvent::eventSignal:
+			case ezReactor::eventSignal:
 				if(DIRECTORY_SEPARATOR !== '/') {
 					return false;
 				}
@@ -85,21 +85,21 @@ class ezEventSelect{
 			$read = $this->readEvent;
 			$write = $this->writeEvent;
 			$except = $this->exceptEvent;
-			$ret = @stream_select($read, $write, $except, $time);
+			$ret = stream_select($read, $write, $except, $time);
 			if(!$ret) continue;
 			foreach ($read as $fd) {
 				$fd_key = (int)$fd;
-				$ev = $this->allEvent[$fd_key][ezEvent::eventRead];
+				$ev = $this->allEvent[$fd_key][ezReactor::eventRead];
 				call_user_func_array($ev[0],array($fd,$ev[1]));
 			}
 			foreach ($write as $fd) {
 				$fd_key = (int)$fd;
-				$ev = $this->allEvent[$fd_key][ezEvent::eventWrite];
+				$ev = $this->allEvent[$fd_key][ezReactor::eventWrite];
 				call_user_func_array($ev[0],array($fd,$ev[1]));
 			}
 			foreach ($except as $fd) {
 				$fd_key = (int)$fd;
-				$ev = $this->allEvent[$fd_key][ezEvent::eventExcept];
+				$ev = $this->allEvent[$fd_key][ezReactor::eventExcept];
 				call_user_func_array($ev[0],array($fd,$ev[1]));
 			}
 		}

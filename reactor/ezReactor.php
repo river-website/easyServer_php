@@ -1,6 +1,6 @@
 <?php
-require 'ezEventLibEvent.php';
-require 'ezEventSelect.php';
+require 'ezReactorLibEvent.php';
+require 'ezReactorSelect.php';
 
 // 事件分发类
 class ezReactor{
@@ -14,38 +14,34 @@ class ezReactor{
     const eventExcept 		= 64;
 
 	private $reactor 		= null;
-	private $thirdEvents 	= null;
-	private $userEvent		= -1;
 
 	public function __construct(){
-		ezGLOBALS::$event = $this;
 		$this->init();
 	}
-	public function isFree(){
-	    return ($this->userEvent>0)?false:true;
-    }
+	static public function getInterface(){
+		static $reactor;
+		if(empty($reactor)) {
+			$reactor = new ezReactor();
+		}
+		return $reactor;
+	}
 	private function init(){
 		if(extension_loaded('libevent')){
-			$this->reactor = new ezEventLibEvent();
+			$this->reactor = new ezReactorLibEvent();
 		}else{
-			$this->reactor = new ezEventSelect();
+			$this->reactor = new ezReactorSelect();
 		}
-		foreach (ezGLOBALS::$thirdEvents as $thirdEvent)
-			$thirdEvent->init();
 	}
 	// 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){
 		$this->reactor->add($fd, $status, $func,$arg);
-		if($this->userEvent>=0)$this->userEvent++;
 	}
 	// 对外接口 删除一个监视资源，状态及事件处理
 	public function del($fd,$status){
 		$this->reactor->del($fd,$status);
-		if($this->userEvent>0)$this->userEvent--;
 	}
 	// 对外接口 开始监视资源
 	public function loop(){
-		$this->userEvent = 0;
 		$this->reactor->loop();
 	}
 }

@@ -200,7 +200,7 @@ class ezHttp
 	 * @param TcpConnection $connection
 	 * @return string
 	 */
-	public static function encode($content, ezTCP $connection)
+	public static function encode($content, ezTcp $connection)
 	{
 		// Default http-code.
 		if (!isset(HttpCache::$header['Http-Code'])) {

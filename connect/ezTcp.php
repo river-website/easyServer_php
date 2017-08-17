@@ -1,10 +1,10 @@
 <?php
 
 class ezTcp{
-	private $socket 			= null;
+	public $onMessage 		= null;
+
+	public $socket 			= null;
 	private $remote_address 	= null;
-	private $onMessage 		= null;
-	private $protocol 			= null;
 	private $sendBuffer 		= null;
 	private $sendStatus 		= true;
 	public $data				= null;
@@ -12,17 +12,7 @@ class ezTcp{
 		$this->socket = $socket;
 		$this->remote_address = $remote_address;
 	}
-	// 设置tcp读数据完成回调函数
-	public function setOnMessage($func){
-		$this->onMessage = $func;
-	}
-	// 设置事件分发对象
-	public function setProtocol($protocol){
-		$this->protocol = $protocol;
-	}
-	public function getSocket(){
-		return $this->socket;
-	}
+
 	public function getRemoteIp()
 	{
 		$pos = strrpos($this->remote_address, ':');
@@ -46,8 +36,8 @@ class ezTcp{
 			$this->destroy();
 			return;	
 		}
-		if(ezGLOBALS::$server->protocol){
-			$buffer = ezGLOBALS::$server->protocol->decode($buffer,$this);
+		if(ezServer::getInterface()->protocol){
+			$buffer = ezServer::getInterface()->protocol->decode($buffer,$this);
 		}
 		if($this->onMessage)
 			call_user_func_array($this->onMessage,array($this,$buffer));
@@ -63,7 +53,7 @@ class ezTcp{
 		if(!empty($this->sendBuffer)){
 			$data = $this->sendBuffer;
 			$this->sendBuffer = '';
-			$len = @fwrite($socket,$data,8192);
+			$len = fwrite($socket,$data,8192);
 			if($len <= 0){
 				if (!is_resource($this->socket) || feof($this->socket)) 
 					$this->destroy();
@@ -74,7 +64,7 @@ class ezTcp{
 				return;
 			}
 		}
-		ezGLOBALS::$event->del($this->socket,ezEvent::eventWrite);
+		ezReactor::getInterface()->del($this->socket,ezReactor::eventWrite);
 	}
 	// 发送数据
 	public function send($data){
@@ -83,8 +73,8 @@ class ezTcp{
 			return;
 		}
 		$data = $this->sendBuffer.$data;
-		if(ezGLOBALS::$server->protocol)$data = ezGLOBALS::$server->protocol->encode($data,$this);
-		$len = @fwrite($this->socket,$data,8192);
+		if(ezServer::getInterface()->protocol)$data = ezServer::getInterface()->protocol->encode($data,$this);
+		$len = fwrite($this->socket,$data,8192);
 		if($len == strlen($data)) {
 			$this->sendBuffer = '';
 			return true;
@@ -97,7 +87,7 @@ class ezTcp{
 			}
 			$this->sendBuffer = $data;
 		}
-		ezGLOBALS::$event->add($this->socket,ezEvent::eventWrite,array($this,'onWrite'));
+		ezReactor::getInterface()->add($this->socket,ezReactor::eventWrite,array($this,'onWrite'));
 		return true;
 	}
 	//关闭当前连接
@@ -115,10 +105,10 @@ class ezTcp{
 	public function destroy()
 	{
 		// Remove event listener.
-		ezGLOBALS::$event->del($this->socket, ezEvent::eventRead);
-		ezGLOBALS::$event->del($this->socket, ezEvent::eventWrite);
+		ezReactor::getInterface()->del($this->socket, ezReactor::eventRead);
+		ezReactor::getInterface()->del($this->socket, ezReactor::eventWrite);
 		// Close socket.
 		fclose($this->socket);
-		ezDebugLog("destroy socket: ".$this->socket);
+		ezServer::getInterface()->debugLog("destroy socket: ".$this->socket);
 	}
 }
