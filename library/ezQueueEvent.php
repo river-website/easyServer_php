@@ -8,9 +8,12 @@
 
 class ezQueueEvent{
 
+    public $queueLockDir           = '/queueLok';
+    public $queueLockFile          = '/queueLockFile';
+    public $queueEventTime         = 10;
+
     private $queList    			= array();
     private $queID      			= 0;
-	private $queueEventTime        = 10;
 
 	public function __construct(){
 		$this->freeStatus();
@@ -28,32 +31,34 @@ class ezQueueEvent{
 		ezReactor::getInterface()->add($this->queueEventTime,ezReactor::eventTime, array($this,'loop'));
     }
     private function getStatus(){
-        return true;
-        if(is_file(__DIR__.'/queLockFile')){
+        if(is_file($this->queueLockFile)){
             return false;
         }else{
-            file_put_contents(__DIR__.'/queLockFile','que is lock!');
-            if(is_file(__DIR__.'/queLockFile'))
+            file_put_contents($this->queueLockFile,'queue is lock!');
+            if(is_file($this->queueLockFile))
                 return true;
             else
                 return false;
         }
     }
     private function freeStatus(){
-    	if(is_file(__DIR__.'/queLockFile'))
-        	unlink(__DIR__.'/queLockFile');
+        $this->queueLockDir = ezServer::getInterface()->runTimePath.$this->queueLockDir;
+        $this->queueLockFile =$this->queueLockDir.$this->queueLockFile;
+        if(!is_dir($this->queueLockDir))mkdir($this->queueLockDir);
+    	if(is_file($this->queueLockFile))
+        	unlink($this->queueLockFile);
     }
     public function loop(){
         if($this->count() == 0)return;
-        ezServer::getInterface()->debugLog("que list >0");
         if(!$this->getStatus())
             return;
-        ezServer::getInterface()->debugLog("que loop com in");
+        ezServer::getInterface()->debugLog("queue loop com in");
         $pid = pcntl_fork();
         if($pid == 0) {
 			ezServer::getInterface()->processName = "ques process";
+			ezServer::getInterface()->pid = getmypid();
             ezDbPool::getInterface()->bakLinks();
-            ezReactor::getInterface()->createSync();
+            ezDbPool::getInterface()->createSync();
             while(true){
                 $que = $this->get();
                 if (empty($que)) {
@@ -71,6 +76,7 @@ class ezQueueEvent{
                 }
             }
         }else{
+            ezServer::getInterface()->pid -= count($this->queList);
             $this->freeQueList();
 			ezServer::getInterface()->addChildPid($pid);
         }
@@ -79,16 +85,18 @@ class ezQueueEvent{
         if(empty($func))return false;
         ezServer::getInterface()->debugLog("que add event");
         $this->queList[] = array($this->queID++,$func,$args);
+        ezServer::getInterface()->eventCount++;
         return true;
     }
     public function back($func,$args= null){
 	    if(empty($func))return false;
 	    $pid = pcntl_fork();
 	    if($pid == 0){
-	        ezGLOBALS::$processName = 'back process';
+	        ezServer::getInterface()->processName = 'back process';
+	        ezServer::getInterface()->pid = getmypid();
 			ezServer::getInterface()->log("start back task");
-            ezGLOBALS::$dbEvent->bakLinks();
-            ezGLOBALS::$dbEvent->createSync();
+            ezDbPool::getInterface()->bakLinks();
+            ezDbPool::getInterface()->createSync();
 	        call_user_func_array($func,array($args));
 			ezServer::getInterface()->log("back task exit");
             posix_kill(getmypid(),SIGKILL);

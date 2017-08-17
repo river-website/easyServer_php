@@ -1,8 +1,9 @@
 <?php
 date_default_timezone_set("PRC");
-require dirname(__FILE__).'/../connect/ezTcp.php';
-require dirname(__FILE__).'/../connect/ezUdp.php';
-require dirname(__FILE__).'/../reactor/ezReactor.php';
+if(!defined('ROOT'))define('ROOT', __DIR__.'/..');
+require ROOT.'/connect/ezTcp.php';
+require ROOT.'/connect/ezUdp.php';
+require ROOT.'/reactor/ezReactor.php';
 
 class ezServer{
     const normal			= 0;
@@ -12,13 +13,15 @@ class ezServer{
 
     // 配置
 	public $log               	= true;
-	public $runTimePath       	= '/phpstudy/test/easyServer/runTime';
-	public $logFile           	= '/log/log-$date.log';
-	public $debug				= true;
+    public $runTimePath       	= '/runTime';
+    public $logDir       	    = '/log';
+	public $logFile           	= '/log-$date.log';
+    public $pidsDir			    = '/pids';
+    public $pidsFile			= '/pidsFile';
+    public $debug				= true;
 	public $processCount 		= 1;
 	public $checkStatusTime		= 1000;
 	public $host 				= 'tcp://0.0.0.0:80';
-	public $pidsFile			= '/pids/pidsFile';
 
 	// 回调
 	public $onMessage 			= null;
@@ -29,14 +32,14 @@ class ezServer{
 
 	public $protocol 			= null;
 	public $curConnect			= null;
-	private $data				= array();
+    public $pid               = 0;
+    private $data				= array();
     private $errorIgnorePaths	= array();
     private $os				= null;
     public $processName	    = 'main process';
-    private $pid               = 0;
     private $mainPid           = 0;
     private $serverSocket 		= null;
-	private $eventCount		= 0;
+	public $eventCount		= 0;
 
 	static public function getInterface(){
 	    static $server;
@@ -62,8 +65,8 @@ class ezServer{
                 return $value['data'];
         }
     }
-    public function set($key,$value,$time=315360000){
-        $this->data[$key] = array('time'=>$time+time(),'data'=>$value);
+    public function set($key,$value,$time=0){
+        $this->data[$key] = array('time'=>$time==0?strtotime('21000000'):$time+time(),'data'=>$value);
     }
     public function addErrorIgnorePath($errno,$path){
         $this->errorIgnorePaths[$errno][$path] = true;
@@ -85,8 +88,8 @@ class ezServer{
         if($this->log){
             $time = time();
             $date = date('Y-m-d',$time);
-            $time = date('h-M-s',$time);
-            $file = $this->runTimePath.str_replace('$date',$date,$this->logFile);
+            $time = date('h:i:s',$time);
+            $file = str_replace('$date',$date,$this->logFile);
             $pid = $this->pid;
             file_put_contents($file,$this->processName."[$pid] $time -> $msg\n",FILE_APPEND);
         }
@@ -114,30 +117,32 @@ class ezServer{
 		stream_set_blocking($this->serverSocket, 0);
 		$this->log("server socket: " . $this->serverSocket);
 	}
-	public function init(){
+	public function start(){
 		set_error_handler(array($this,'errorHandle'));
-		$this->dirCreate();
+		$this->initDir();
 		$this->createSocket();
 		$this->forks();
 		$this->monitorWorkers();
 	}
-	private function dirCreate(){
-		if(is_dir($this->runTimePath))
-			return;
+	private function initDir(){
+	    $this->runTimePath = ROOT.$this->runTimePath;
+		if(!is_dir($this->runTimePath))
+			mkdir($this->runTimePath);
+		$this->logDir = $this->runTimePath.$this->logDir;
+		if(!is_dir($this->logDir))
+            mkdir($this->logDir);
+        $this->pidsDir = $this->runTimePath.$this->pidsDir;
+        if(!is_dir($this->pidsDir))
+            mkdir($this->pidsDir);
+        $this->logFile = $this->logDir.$this->logFile;
+        $this->pidsFile = $this->pidsDir.$this->pidsFile;
 	}
-	public function loop(){
-		if($this->processCount==0 || $this->pid != $this->mainPid){
-			ezReactor::getInterface()->loop();
-			$this->log("work process exit reactor loop");
-			exit();
-		}
-	}
+
 	private function forks(){
-	    if(is_file($this->runTimePath.$this->pidsFile))
-	        unlink($this->runTimePath.$this->pidsFile);
+	    if(is_file($this->pidsFile))
+	        unlink($this->pidsFile);
 	    if($this->processCount == 0)$this->reactor();
         for($i=0;$i<$this->processCount;$i++) {
-        	if($this->pid != $this->mainPid)return;
 			$this->forkOne();
 		}
     }
@@ -153,9 +158,14 @@ class ezServer{
         }
     }
     private function reactor(){
+        if(!empty($this->onStart))
+            call_user_func($this->onStart);
 		ezReactor::getInterface()->add($this->serverSocket, ezReactor::eventRead, array($this, 'onAccept'));
 		if($this->checkStatusTime)
 			ezReactor::getInterface()->add($this->checkStatusTime, ezReactor::eventTime, array($this, 'checkProcessStatus'));
+        ezReactor::getInterface()->loop();
+        $this->log("work process exit reactor loop");
+        exit();
 	}
     public function addChildPid($pid){
         $childPids = $this->getRunTimeData($this->pidsFile);
@@ -171,8 +181,6 @@ class ezServer{
         $this->setRunTimeData($childPids,$this->pidsFile);
     }
 	private function monitorWorkers(){
-		if($this->processCount==0 || $this->pid != $this->mainPid)
-			return;
 		$this->log("start monitor workers");
 		while(true){
             $pid = pcntl_wait($status, WUNTRACED);
@@ -196,7 +204,7 @@ class ezServer{
 
 		$tcp = new ezTcp($new_socket,$remote_address);
 		$tcp->onMessage = $this->onMessage;
-		$this->reactor->add($new_socket, ezEvent::eventRead, array($tcp, 'onRead'));
+		ezReactor::getInterface()->add($new_socket, ezReactor::eventRead, array($tcp, 'onRead'));
 	}
 	public function delServerSocketEvent(){
 		if(empty($this->serverSocket))return;
@@ -205,11 +213,11 @@ class ezServer{
 		$this->reactor->del($this->serverSocket,ezReactor::eventWrite);
 	}
 	public function setRunTimeData($data,$file){
-        file_put_contents($this->runTimePath.$file,serialize($data));
+        file_put_contents($file,serialize($data));
     }
     public function getRunTimeData($file){
-	    if(is_file($this->runTimePath.$file))
-            return unserialize(file_get_contents($this->runTimePath.$file));
+	    if(is_file($file))
+            return unserialize(file_get_contents($file));
     }
 	// 检查状态
 	public function checkProcessStatus(){

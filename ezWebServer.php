@@ -1,24 +1,31 @@
 <?php
+define('ROOT',__DIR__);
+require 'system/ezServer.php';
+require 'library/ezDbPool.php';
+require 'library/ezQueueEvent.php';
 require 'protocol/ezHttp.php';
 
 class ezWebServer {
 	private $serverRoot = array();
 	public function __construct($host){
 		$server = ezServer::getInterface();
+        $server->host = $host;
 		$server->onMessage = array($this, 'onMessage');
 		$server->protocol = new ezHttp();
+		$server->onStart = array($this,'onStart');
 	}
 
 	// 设置域名和网站目录
 	public function setWeb($webSite,$path){
 		$this->serverRoot[$webSite] = $path;
 	}
-	public function start(){
-		ezServer::getInterface()->init();
+	public function onStart(){
 		ezDbPool::getInterface()->init();
 		ezQueueEvent::getInterface()->init();
-		ezServer::getInterface()->loop();
 	}
+	public function start(){
+	    ezServer::getInterface()->start();
+    }
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
 		// REQUEST_URI.

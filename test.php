@@ -1,5 +1,4 @@
 <?php
-require 'system/ezServer.php';
 require 'ezWebServer.php';
 
 $server = new ezWebServer('0.0.0.0:88');

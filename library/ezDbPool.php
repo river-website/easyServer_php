@@ -1,9 +1,9 @@
 <?php
 
 class ezDbPool{
-	private $maxAsyncLinks 		= 0;
-	private $dbPoolTime			= 1;
-	private $dbConf				= array(
+	public $maxAsyncLinks 		= 0;
+	public $dbPoolTime			= 1;
+	public $dbConf				= array(
 		'host' => '127.0.0.1',
 		'user' => 'root',
 		'password' => 'root',
@@ -14,10 +14,9 @@ class ezDbPool{
 	private $syncLink 			= null;
 	private $asyncLinks 		= array();
 	private $linkKeys 			= array();
-	private $freeAsyncLink 	= array();
+	private $freeAsyncLink      = array();
 	private $sqlList 			= array();
-	private $bakLink           = array();
-	private $time				= 0;
+	private $bakLink            = array();
 
 	public function __construct(){
 	}
@@ -38,13 +37,13 @@ class ezDbPool{
 			$con = $this->connectDB($conf);
 			$this->asyncLinks[] = $con;
 			$this->freeAsyncLink[] = $con;
-			ezServer::getInterface()->debugLog("link key is: ".$this->linkToKey($con));
+			ezServer::getInterface()->debugLog("async link is: ".$this->linkToKey($con));
 		}
 		ezReactor::getInterface()->add($this->dbPoolTime,ezReactor::eventTime, array($this,'loop'));
 	}
 	private function connectDB($conf){
 		$con = mysqli_connect($conf['host'], $conf['user'], $conf['password'], $conf['dataBase'], $conf['port']);
-		if (!$con)throw new Exception(mysqli_error());
+		if (!$con)throw new Exception(mysqli_error($con));
 		return $con;
 	}
 	public function bakLinks(){
@@ -61,7 +60,7 @@ class ezDbPool{
         $this->sqlList = null;
     }
     public function createSync(){
-        $conf = ezServer::getInterface()->dbConf;
+        $conf = $this->dbConf;
         $this->syncLink = $this->connectDB($conf);
         ezServer::getInterface()->debugLog("sync link is: ".$this->linkToKey($this->syncLink));
     }
@@ -70,6 +69,7 @@ class ezDbPool{
 	}
 	public function excute($sql, $func = null,$queEvent = false){
 		if(!empty($func) || $queEvent){
+		    ezServer::getInterface()->pid++;
 			$con = ezServer::getInterface()->curConnect;
 			if(!empty($func)) {
 				$con->setDelaySend();
@@ -101,7 +101,7 @@ class ezDbPool{
 		while(true){
 		    if(count($this->asyncLinks) == 0)return;
 			$read = $errors = $reject = $this->asyncLinks;
-			$re = mysqli_poll($read, $errors, $reject, $this->time);
+			$re = mysqli_poll($read, $errors, $reject, 0);
 			if (false === $re) {
 				die('mysqli_poll failed');
 			} elseif ($re < 1)
@@ -109,6 +109,7 @@ class ezDbPool{
 
 			ezServer::getInterface()->debugLog("read ready!");
 			foreach ($read as $link) {
+			    ezServer::getInterface()->pid--;
 				$sql_result = $link->reap_async_query();
 				if (is_object($sql_result))
 					$linkData = $sql_result->fetch_all(MYSQLI_ASSOC);
@@ -122,6 +123,7 @@ class ezDbPool{
 					unset($this->linkKeys[$linkKey]);
 				}
 				else {
+				    ezServer::getInterface()->pid++;
 					ezServer::getInterface()->debugLog("do sql que");
 					mysqli_query($link, $sqlInfo[0], MYSQLI_ASYNC);
 					$this->linkKeys[$linkKey] = array($sqlInfo[1], $sqlInfo[2]);

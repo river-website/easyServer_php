@@ -31,7 +31,7 @@ class ezReactorLibEvent{
                 }
 				ezServer::getInterface()->debugLog("add time event,time out is: $fd");
 				$event = event_new();
-				if (!event_set($event, 0, EV_TIMEOUT,array($this,'onTime'), array($fd,$status,$func,$arg)))
+				if (!event_set($event, 0, EV_TIMEOUT,array($this,'onTime'), array($event,$fd,$status,$func,$arg)))
 					return false;
 				if (!event_base_set($event, $this->base))
 					return false;
@@ -84,12 +84,13 @@ class ezReactorLibEvent{
 	public function loop(){
 		event_base_loop($this->base);
 	}
-	public function onTime($fd,$event,$data){
-        if(count($data) != 4)return;
-        $fd     = $data[0];
-        $status = $data[1];
-        $func   = $data[2];
-        $arg    = $data[3];
+	public function onTime($fd,$type,$args){
+        if(count($args) != 5)return;
+        $event  = $args[0];
+        $fd     = $args[1];
+        $status = $args[2];
+        $func   = $args[3];
+        $arg    = $args[4];
         if($status != ezReactor::eventTimeOnce) {
             if ($status == ezReactor::eventClock) {
                 // $fd 如 03:15:30,即每天3:15:30执行
