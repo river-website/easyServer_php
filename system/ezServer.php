@@ -183,9 +183,12 @@ class ezServer{
 	private function monitorWorkers(){
 		$this->log("start monitor workers");
 		while(true){
-            $pid = pcntl_wait($status, WUNTRACED);
-            $this->log("work process $pid exit");
-            $this->checkProcessStatus();
+            $pid = pcntl_wait($status, WNOHANG);
+			if($pid>0) {
+				$this->log("work process $pid exit");
+				$this->checkProcessStatus();
+			}
+            sleep(1);
         }
         exit();
 	}
