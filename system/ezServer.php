@@ -183,12 +183,17 @@ class ezServer{
 	private function monitorWorkers(){
 		$this->log("start monitor workers");
 		while(true){
-            $pid = pcntl_wait($status, WNOHANG);
+            $pid = pcntl_wait($status, WNOHANG );
 			if($pid>0) {
 				$this->log("work process $pid exit");
-				$this->checkProcessStatus();
-			}
-            sleep(1);
+				$this->checkProcessStatus($pid);
+			}else if($pid==0){
+                $this->checkProcessStatus();
+            }else{
+                $this->log(" pcntl_wait error");
+            }
+            $time =$this->checkStatusTime/1000;
+            sleep($time);
         }
         exit();
 	}
@@ -223,7 +228,7 @@ class ezServer{
             return unserialize(file_get_contents($file));
     }
 	// 检查状态
-	public function checkProcessStatus(){
+	public function checkProcessStatus($exitPid = 0){
 		$status = $this->getServerStatus();
 		if($this->pid == $this->mainPid){
 			if ($status == ezServer::exitAll){
@@ -233,11 +238,19 @@ class ezServer{
                     $live = array();
                     foreach ($childPids as $key=>$pid) {
                         if (posix_kill($pid, 0)) {
-                            posix_kill($pid, SIGKILL);
-                            $live[$key] = $pid;
+                            $ret = pcntl_waitpid($pid,$status,WNOHANG);
+                            if($ret<=0) {
+                                $this->log("will kill $pid");
+                                posix_kill($pid, SIGKILL);
+                                $live[$key] = $pid;
+                                continue;
+                            }
                         }
+                        $this->log("$pid has exit");
                     }
                     $childPids = $live;
+                    $time = $this->checkStatusTime/1000;
+                    sleep($time);
                 }
                 $this->log("all process exit");
                 exit();
@@ -247,32 +260,42 @@ class ezServer{
                     $this->forks();
                     return;
                 }
-                while(count($childPids)>0) {
+                while(count($childPids)>0){
                     $live = array();
-                    foreach ($childPids as $key => $pid) {
+                    foreach ($childPids as $key=>$pid) {
                         if (posix_kill($pid, 0)) {
-                            posix_kill($pid, SIGKILL);
-                            $live[$key] = $pid;
+                            $ret = pcntl_waitpid($pid,$status,WNOHANG);
+                            if($ret<=0) {
+                                $this->log("will kill $pid");
+                                posix_kill($pid, SIGKILL);
+                                $live[$key] = $pid;
+                                continue;
+                            }
                         }
+                        $this->log("$pid has exit");
                     }
                     $childPids = $live;
+                    $time = $this->checkStatusTime/1000;
+                    sleep($time);
                 }
                 $this->forks();
-            }else if($status == ezServer::smoothReload){
+            }else if($status == ezServer::smoothReload && $exitPid>0){
                 $this->forkOne();
-            }else if($status == ezServer::normal) {
+            }else if($status == ezServer::normal && $exitPid>0) {
                 $this->forkOne();
             }
 		}else {
             if ($status == ezServer::normal) return;
             if ($status == ezServer::exitAll){
                	$this->delServerSocketEvent();
+               	$this->log('exit');
                 exit();
             }
 			if ($status == ezServer::reload){
 				if (!empty($this->curConnect)) {
 					$this->delServerSocketEvent();
-					exit();
+                    $this->log('exit');
+                    exit();
 				}
             }
 			if ($status == ezServer::smoothReload) {
@@ -280,6 +303,7 @@ class ezServer{
 					// 开始平滑重启
 					$this->delServerSocketEvent();
 					if($this->eventCount>0)return;
+					$this->log('exit');
 					exit();
 				}
 			}
