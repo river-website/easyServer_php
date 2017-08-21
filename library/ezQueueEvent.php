@@ -57,6 +57,7 @@ class ezQueueEvent{
         if($pid == 0) {
 			ezServer::getInterface()->processName = "ques process";
 			ezServer::getInterface()->pid = getmypid();
+			ezServer::getInterface()->outScreen = false;
             ezDbPool::getInterface()->bakLinks();
             ezDbPool::getInterface()->createSync();
             while(true){
@@ -94,6 +95,7 @@ class ezQueueEvent{
 	    if($pid == 0){
 	        ezServer::getInterface()->processName = 'back process';
 	        ezServer::getInterface()->pid = getmypid();
+	        ezServer::getInterface()->outScreen = false;
 			ezServer::getInterface()->log("start back task");
             ezDbPool::getInterface()->bakLinks();
             ezDbPool::getInterface()->createSync();

@@ -32,15 +32,15 @@ class ezServer{
 
 	public $protocol 			= null;
 	public $curConnect			= null;
-    public $pid               = 0;
+    public $pid               	= 0;
     private $data				= array();
     private $errorIgnorePaths	= array();
     private $os				= null;
-    public $processName	    = 'main process';
+    public $processName	    	= 'main process';
     private $mainPid           = 0;
     private $serverSocket 		= null;
-	public $eventCount		= 0;
-
+	public $eventCount			= 0;
+	public $outScreen			= false;
 	static public function getInterface(){
 	    static $server;
 	    if(empty($server)) {
@@ -303,14 +303,14 @@ class ezServer{
 					// 开始平滑重启
 					$this->delServerSocketEvent();
 					if($this->eventCount>0)return;
-					$this->log('exit');
+					$this->log('work process exit');
 					exit();
 				}
 			}
 		}
 	}
 	public function errorHandle($errno, $errstr, $errfile, $errline){
-		if($this->checkErrorIgnorePath(E_NOTICE,$errfile))return;
+		if($this->checkErrorIgnorePath($errno,$errfile))return;
 		$msg = '';
 		switch ($errno){
 			case E_ERROR:{
@@ -378,6 +378,9 @@ class ezServer{
 			}
 				break;
 		}
-		$this->log($msg);
+		if($this->outScreen)
+			echo "$msg<br>";
+		else
+			$this->log($msg);
 	}
 }

@@ -65,6 +65,7 @@ class ezTcp{
 			}
 		}
 		ezReactor::getInterface()->del($this->socket,ezReactor::eventWrite);
+		ezServer::getInterface()->eventCount--;
 	}
 	// 发送数据
 	public function send($data){
@@ -88,6 +89,7 @@ class ezTcp{
 			$this->sendBuffer = $data;
 		}
 		ezReactor::getInterface()->add($this->socket,ezReactor::eventWrite,array($this,'onWrite'));
+		ezServer::getInterface()->eventCount++;
 		return true;
 	}
 	//关闭当前连接

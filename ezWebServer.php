@@ -76,7 +76,8 @@ class ezWebServer {
                 $workerman_cwd = getcwd();
                 chdir($workerman_root_dir);
                 ini_set('display_errors', 'off');
-                ob_start();
+				$this->outScreen = true;
+				ob_start();
                 // Try to include php file.
                 try {
                     // $_SERVER.
@@ -93,6 +94,7 @@ class ezWebServer {
                 } else {
                     $connection->close($content);
                 }
+				$this->outScreen = false;
                 chdir($workerman_cwd);
                 return;
             }
