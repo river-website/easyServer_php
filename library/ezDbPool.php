@@ -44,6 +44,7 @@ class ezDbPool{
 	private function connectDB($conf){
 		$con = mysqli_connect($conf['host'], $conf['user'], $conf['password'], $conf['dataBase'], $conf['port']);
 		if (!$con)throw new Exception(mysqli_error($con));
+        mysqli_query($con,"set names 'utf8'");
 		return $con;
 	}
 	public function bakLinks(){
