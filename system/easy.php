@@ -32,7 +32,7 @@ class easy{
 		$pids = self::getPids();
 		$pidData['pid'] = $pid;
 		$pidData['state'] = 'run';
-		$pidData['time'] = date('y-M-d h:i:s',time());
+		$pidData['time'] = date('Y-m-d H:i:s',time());
 		$pids[$type][] = $pidData;
 		self::setPids($pids);
 	}
@@ -96,13 +96,7 @@ class easy{
 	private function monitorServer(){
 		while(true){
 			$pid = pcntl_wait($status, WNOHANG );
-			$this->checkServer();
-			// if($pid>0) {
-			// 	$this->forkServer();
-			// }else if($pid==0){
-			// 	$this->checkServer();
-			// }else{
-			// }
+			$this->checkServer($pid);
 			sleep(self::$checkServerTime);
 		}
 		exit();

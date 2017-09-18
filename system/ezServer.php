@@ -5,12 +5,23 @@ require ROOT.'/connect/ezTcp.php';
 require ROOT.'/connect/ezUdp.php';
 require ROOT.'/reactor/ezReactor.php';
 
-class ezServer{
-    const normal			= 0;
-    const exitAll			= 1;
-    const reload			= 2;
-    const smoothReload		= 4;
+if (!function_exists('ezServer')) {
+	function ezServer(){
+		return ezServer::getInterface();
+	}
+}
+if (!function_exists('ezLog')) {
+	function ezLog($msg){
+		ezServer()->log($msg);
+	}
+}
+if (!function_exists('ezDebugLog')) {
+	function ezDebugLog($msg){
+		ezServer()->debugLog($msg);
+	}
+}
 
+class ezServer{
     // 配置
 	public $log               	= true;
     public $runTimePath       	= '/runTime';
@@ -34,28 +45,33 @@ class ezServer{
     public $pid               	= 0;
     private $data				= array();
     private $errorIgnorePaths	= array();
-    private $os				= null;
     public $processName	    	= 'server process';
-    private $mainPid           = 0;
     private $serverSocket 		= null;
 	public $eventCount			= 0;
 	public $outScreen			= false;
+
 	static public function getInterface(){
 	    static $server;
-	    if(empty($server)) {
-	    	// self::back();
-			$server = new ezServer();
-		}
+	    if(empty($server)) $server = new ezServer();
 	    return $server;
     }
-	// static private function back(){
-	// 	$pid  = pcntl_fork();
-	// 	if($pid > 0)exit();
-	// }
     public function __construct(){
-		$this->mainPid = getmypid();
 	    $this->pid = getmypid();
-        $this->os = $this->getOS();
+	}
+	public function log($msg){
+		if($this->log){
+			$time = time();
+			$date = date('Y-m-d',$time);
+			$time = date('H:i:s',$time);
+			$file = str_replace('$date',$date,$this->logFile);
+			$pid = $this->pid;
+			file_put_contents($file,$this->processName."[$pid] $time -> $msg\n",FILE_APPEND);
+		}
+	}
+	public function debugLog($msg){
+		if($this->debug){
+			$this->log("(debug) $msg");
+		}
 	}
     public function get($key){
         if(isset($this->data[$key])) {
@@ -83,30 +99,8 @@ class ezServer{
         }
         return false;
     }
-    public function log($msg){
-        if($this->log){
-            $time = time();
-            $date = date('Y-m-d',$time);
-            $time = date('h:i:s',$time);
-            $file = str_replace('$date',$date,$this->logFile);
-            $pid = $this->pid;
-            file_put_contents($file,$this->processName."[$pid] $time -> $msg\n",FILE_APPEND);
-        }
-    }
-    public function debugLog($msg){
-        if($this->debug){
-            $this->log($msg);
-        }
-    }
 
-	// 获取操作系统
-	private function getOS(){
-		// windows or linux
-		if(strpos(PHP_OS,'WIN') !== FALSE)
-			$os = 'Windows';
-		else $os = 'Linux';
-		return $os; 
-	}
+
 	private function createSocket(){
 		$this->serverSocket = stream_socket_server($this->host);
 		if (!$this->serverSocket) {
@@ -256,7 +250,7 @@ class ezServer{
                 }
             }
             else if(strpos("debug+",$status) !== false) {
-                $time = time()-substr($state, strpos("debug+", $state));
+                $time = time()-substr($status, strpos("debug+", $status));
                 $killList = array();
                 foreach ($$pids['work'] as $pidData) {
                 	if($pidData['time']<$time)

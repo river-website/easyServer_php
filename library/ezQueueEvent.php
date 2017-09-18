@@ -6,6 +6,22 @@
  * Time: 18:06
  */
 
+if (!function_exists('ezQueue')) {
+	function ezQueue(){
+		return ezQueueEvent::getInterface();
+	}
+}
+if (!function_exists('ezBack')) {
+	function ezBack($func,$args= null){
+		ezQueue()->back($func,$args);
+	}
+}
+if (!function_exists('ezQueueAdd')) {
+	function ezQueueAdd($func,$args= null){
+		ezQueue()->add($func,$args);
+	}
+}
+
 class ezQueueEvent{
 
     public $queueLockDir           = '/queueLok';
@@ -55,6 +71,7 @@ class ezQueueEvent{
         ezServer::getInterface()->debugLog("queue loop com in");
         $pid = pcntl_fork();
         if($pid == 0) {
+			easy::addPid('queue',getmypid());
 			ezServer::getInterface()->processName = "ques process";
 			ezServer::getInterface()->pid = getmypid();
 			ezServer::getInterface()->outScreen = false;
@@ -93,6 +110,7 @@ class ezQueueEvent{
 	    if(empty($func))return false;
 	    $pid = pcntl_fork();
 	    if($pid == 0){
+	    	easy::addPid('back',getmypid());
 	        ezServer::getInterface()->processName = 'back process';
 	        ezServer::getInterface()->pid = getmypid();
 	        ezServer::getInterface()->outScreen = false;

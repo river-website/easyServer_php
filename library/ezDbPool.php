@@ -1,5 +1,16 @@
 <?php
 
+if (!function_exists('ezDb')) {
+	function ezDb(){
+		return ezDbPool::getInterface();
+	}
+}
+if (!function_exists('ezDbExcute')) {
+	function ezDbExcute($sql, $func = null,$queEvent = false){
+		return ezDb()->excute($sql, $func, $queEvent);
+	}
+}
+
 class ezDbPool{
 	public $maxAsyncLinks 		= 0;
 	public $dbPoolTime			= 1;
