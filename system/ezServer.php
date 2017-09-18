@@ -1,6 +1,6 @@
 <?php
 date_default_timezone_set("PRC");
-if(!defined('ROOT'))define('ROOT', __DIR__.'/..');
+
 require ROOT.'/connect/ezTcp.php';
 require ROOT.'/connect/ezUdp.php';
 require ROOT.'/reactor/ezReactor.php';
@@ -20,7 +20,6 @@ class ezServer{
     public $pidsFile			= '/pidsFile';
     public $debug				= true;
 	public $processCount 		= 1;
-	public $checkStatusTime		= 1000;
 	public $host 				= 'tcp://0.0.0.0:80';
 
 	// 回调
@@ -36,7 +35,7 @@ class ezServer{
     private $data				= array();
     private $errorIgnorePaths	= array();
     private $os				= null;
-    public $processName	    	= 'main process';
+    public $processName	    	= 'server process';
     private $mainPid           = 0;
     private $serverSocket 		= null;
 	public $eventCount			= 0;
@@ -44,15 +43,15 @@ class ezServer{
 	static public function getInterface(){
 	    static $server;
 	    if(empty($server)) {
-	    	self::back();
+	    	// self::back();
 			$server = new ezServer();
 		}
 	    return $server;
     }
-	static private function back(){
-		$pid  = pcntl_fork();
-		if($pid > 0)exit();
-	}
+	// static private function back(){
+	// 	$pid  = pcntl_fork();
+	// 	if($pid > 0)exit();
+	// }
     public function __construct(){
 		$this->mainPid = getmypid();
 	    $this->pid = getmypid();
@@ -135,12 +134,12 @@ class ezServer{
         if(!is_dir($this->pidsDir))
             mkdir($this->pidsDir);
         $this->logFile = $this->logDir.$this->logFile;
-        $this->pidsFile = $this->pidsDir.$this->pidsFile;
+        // $this->pidsFile = $this->pidsDir.$this->pidsFile;
 	}
 
 	private function forks(){
-	    if(is_file($this->pidsFile))
-	        unlink($this->pidsFile);
+	    // if(is_file($this->pidsFile))
+	    //     unlink($this->pidsFile);
 	    if($this->processCount == 0)$this->reactor();
         for($i=0;$i<$this->processCount;$i++) {
 			$this->forkOne();
@@ -149,37 +148,37 @@ class ezServer{
     private function forkOne(){
         $pid = pcntl_fork();
         if($pid == 0) {
+            easy::addPid('work',getmypid());
             $this->processName = 'work process';
             $this->pid = getmypid();
 			$this->reactor();
         }else{
 			$this->log("work pid: $pid");
-            $this->addChildPid($pid);
         }
     }
     private function reactor(){
         if(!empty($this->onStart))
             call_user_func($this->onStart);
 		ezReactor::getInterface()->add($this->serverSocket, ezReactor::eventRead, array($this, 'onAccept'));
-		if($this->checkStatusTime)
-			ezReactor::getInterface()->add($this->checkStatusTime, ezReactor::eventTime, array($this, 'checkProcessStatus'));
+		//if($this->checkStatusTime)
+		//	ezReactor::getInterface()->add($this->checkStatusTime, ezReactor::eventTime, array($this, 'checkProcessStatus'));
         ezReactor::getInterface()->loop();
         $this->log("work process exit reactor loop");
         exit();
 	}
-    public function addChildPid($pid){
-        $childPids = $this->getRunTimeData($this->pidsFile);
-        if(empty($childPids) || count($childPids) == 0)
-            $childPids = array((int)$pid=>$pid);
-        else $childPids[(int)$pid] = $pid;
-        $this->setRunTimeData($childPids,$this->pidsFile);
-    }
-    public function delChildPid($pid){
-        $childPids = $this->getRunTimeData($this->pidsFile);
-       if(!isset($childPids[$pid]))return;
-       unset($childPids[$pid]);
-        $this->setRunTimeData($childPids,$this->pidsFile);
-    }
+    // public function addChildPid($pid){
+    //     $childPids = $this->getRunTimeData($this->pidsFile);
+    //     if(empty($childPids) || count($childPids) == 0)
+    //         $childPids = array((int)$pid=>$pid);
+    //     else $childPids[(int)$pid] = $pid;
+    //     $this->setRunTimeData($childPids,$this->pidsFile);
+    // }
+    // public function delChildPid($pid){
+    //     $childPids = $this->getRunTimeData($this->pidsFile);
+    //    if(!isset($childPids[$pid]))return;
+    //    unset($childPids[$pid]);
+    //     $this->setRunTimeData($childPids,$this->pidsFile);
+    // }
 	private function monitorWorkers(){
 		$this->log("start monitor workers");
 		while(true){
@@ -190,17 +189,16 @@ class ezServer{
 			}else if($pid==0){
                 $this->checkProcessStatus();
             }else{
-                $this->log(" pcntl_wait error");
+                $this->checkProcessStatus();
             }
-            $time =$this->checkStatusTime/1000;
-            sleep($time);
+            sleep(easy::$checkServerTime);
         }
         exit();
 	}
-	private function getServerStatus(){
-		include 'ezServerStatus.php';
-		return $GLOBALS['ezServerStatus'];
-	}
+	// private function getServerStatus(){
+	// 	include 'ezServerStatus.php';
+	// 	return $GLOBALS['ezServerStatus'];
+	// }
 	// 当收到连接时
 	public function onAccept($socket){
 		$new_socket = stream_socket_accept($socket, 0, $remote_address);
@@ -227,87 +225,54 @@ class ezServer{
 	    if(is_file($file))
             return unserialize(file_get_contents($file));
     }
+    
 	// 检查状态
 	public function checkProcessStatus($exitPid = 0){
-		$status = $this->getServerStatus();
-		if($this->pid == $this->mainPid){
-			if ($status == ezServer::exitAll){
-                $childPids = $this->getRunTimeData($this->pidsFile);
-                if(empty($childPids) || count($childPids) == 0)exit();
-                while(count($childPids)>0){
-                    $live = array();
-                    foreach ($childPids as $key=>$pid) {
-                        if (posix_kill($pid, 0)) {
-                            $ret = pcntl_waitpid($pid,$status,WNOHANG);
-                            if($ret<=0) {
-                                $this->log("will kill $pid");
-                                posix_kill($pid, SIGKILL);
-                                $live[$key] = $pid;
-                                continue;
-                            }
-                        }
-                        $this->log("$pid has exit");
-                    }
-                    $childPids = $live;
-                    $time = $this->checkStatusTime/1000;
-                    sleep($time);
-                }
-                $this->log("all process exit");
-                exit();
-            }else if($status == ezServer::reload){
-                $childPids = $this->getRunTimeData($this->pidsFile);
-                if(empty($childPids) || count($childPids) == 0){
-                    $this->forks();
-                    return;
-                }
-                while(count($childPids)>0){
-                    $live = array();
-                    foreach ($childPids as $key=>$pid) {
-                        if (posix_kill($pid, 0)) {
-                            $ret = pcntl_waitpid($pid,$status,WNOHANG);
-                            if($ret<=0) {
-                                $this->log("will kill $pid");
-                                posix_kill($pid, SIGKILL);
-                                $live[$key] = $pid;
-                                continue;
-                            }
-                        }
-                        $this->log("$pid has exit");
-                    }
-                    $childPids = $live;
-                    $time = $this->checkStatusTime/1000;
-                    sleep($time);
-                }
+		$pids = easy::getPids();
+		$childPids = easy::getChilds($pids,'server');
+		$status = $pids['server'][0]['state'];
+
+			if ($status == "stop"){
+				easy::killPids(array_keys($childPids));
+				easy::delPid(getmypid());
+				exit();
+            }
+            else if($status == "reload"){
+                easy::killPids(array_keys($childPids));
+                easy::updatePid(getmypid(),'run');
                 $this->forks();
-            }else if($status == ezServer::smoothReload && $exitPid>0){
-                $this->forkOne();
-            }else if($status == ezServer::normal && $exitPid>0) {
-                $this->forkOne();
             }
-		}else {
-            if ($status == ezServer::normal) return;
-            if ($status == ezServer::exitAll){
-               	$this->delServerSocketEvent();
-               	$this->log('exit');
-                exit();
+            else if($status == "run"){
+            	$killList = array();
+                foreach ($childPids as $pid => $pidData) {
+                	if($pidData['state'] == "stop")
+                		$killList[] = $pid;
+                }
+                easy::killPids($killList);
+                if($exitPid){
+                	$pidState = easy::getPidState($exitPid);
+                	if(!empty($pidState) && $pidState == 'run')
+                		$this->forkOne();
+                }
             }
-			if ($status == ezServer::reload){
-				if (!empty($this->curConnect)) {
-					$this->delServerSocketEvent();
-                    $this->log('exit');
-                    exit();
-				}
+            else if(strpos("debug+",$status) !== false) {
+                $time = time()-substr($state, strpos("debug+", $state));
+                $killList = array();
+                foreach ($$pids['work'] as $pidData) {
+                	if($pidData['time']<$time)
+                		$killList[] = $pidData['pid'];
+                }
+                easy::killPids($killList);
+                if($exitPid){
+                	$pidState = easy::getPidState($exitPid);
+                	if(!empty($pidState) && $pidState == 'run')
+                		$this->forkOne();
+                }
+                foreach ($$killList as $pid) {
+                	$this->forkOne();
+                }
             }
-			if ($status == ezServer::smoothReload) {
-				if (!empty($this->curConnect)) {
-					// 开始平滑重启
-					$this->delServerSocketEvent();
-					if($this->eventCount>0)return;
-					$this->log('work process exit');
-					exit();
-				}
-			}
-		}
+
 	}
 	public function errorHandle($errno, $errstr, $errfile, $errline){
 		if($this->checkErrorIgnorePath($errno,$errfile))return;

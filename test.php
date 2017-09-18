@@ -1,7 +1,10 @@
 <?php
-require 'ezWebServer.php';
-
-$server = new ezWebServer('0.0.0.0:80');
-//$server->setWeb('http://localhost','D:/phpStudy/WWW/easyPHP');
-$server->setWeb('http://localhost','/www/wwwroot/easyPHP');
-$server->start();
+require 'system/easy.php';
+$easy = new easy();
+$easy->setServer('ezWebServer');
+$serverData['host'] = '0.0.0.0:81';
+$serverData['serverRoot'] = array(
+	array('webSite'=>'http://localhost','path'=>'/www/wwwroot/test/easyPHP')
+);
+$easy->setServerData($serverData);
+$easy->start();
