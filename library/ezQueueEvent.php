@@ -13,12 +13,12 @@ if (!function_exists('ezQueue')) {
 }
 if (!function_exists('ezBack')) {
 	function ezBack($func,$args= null){
-		ezQueue()->back($func,$args);
+		ezQueueEvent::getInterface()->back($func,$args);
 	}
 }
 if (!function_exists('ezQueueAdd')) {
 	function ezQueueAdd($func,$args= null){
-		ezQueue()->add($func,$args);
+		ezQueueEvent::getInterface()->add($func,$args);
 	}
 }
 
@@ -44,7 +44,7 @@ class ezQueueEvent{
 
     public function init(){
 		if($this->queueEventTime==0)return;
-		ezReactor::getInterface()->add($this->queueEventTime,ezReactor::eventTime, array($this,'loop'));
+		ezReactorAdd($this->queueEventTime,ezReactor::eventTime, array($this,'loop'));
     }
     private function getStatus(){
         if(is_file($this->queueLockFile)){
@@ -111,14 +111,14 @@ class ezQueueEvent{
 	    $pid = pcntl_fork();
 	    if($pid == 0){
 	    	easy::addPid('back',getmypid());
-	        ezServer::getInterface()->processName = 'back process';
-	        ezServer::getInterface()->pid = getmypid();
-	        ezServer::getInterface()->outScreen = false;
-			ezServer::getInterface()->log("start back task");
-            ezDbPool::getInterface()->bakLinks();
-            ezDbPool::getInterface()->createSync();
+	        ezServer()->processName = 'back process';
+	        ezServer()->pid = getmypid();
+	        ezServer()->outScreen = false;
+			ezServer()->log("start back task");
+            ezDbPool()->bakLinks();
+            ezDbPool()->createSync();
 	        call_user_func_array($func,array($args));
-			ezServer::getInterface()->log("back task exit");
+			ezLog("back task exit");
             posix_kill(getmypid(),SIGKILL);
         }else{
 			ezServer::getInterface()->addChildPid($pid);

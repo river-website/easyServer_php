@@ -1,10 +1,5 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: win10
- * Date: 2017/7/20
- * Time: 10:04
- */
+
 class ezReactorLibEvent{
 
 	private $base 			= null;
@@ -23,13 +18,11 @@ class ezReactorLibEvent{
                     // $fd 如 03:15:30,即每天3:15:30执行
                     $time = strtotime($fd);
                     $now = time();
-                    if ($now >= $time)
-                        $time = strtotime('+1 day', $time);
+                    if ($now >= $time) $time = strtotime('+1 day', $time);
                     $time = ($time - $now) * 1000;
-                }else{
-                    $time = $fd * 1000;
                 }
-				ezServer::getInterface()->debugLog("add time event,time out is: $fd");
+                else $time = $fd * 1000;
+				ezDebugLog("add time event,time out is: $fd");
 				$event = event_new();
 				if (!event_set($event, 0, EV_TIMEOUT,array($this,'onTime'), array($event,$fd,$status,$func,$arg)))
 					return false;
@@ -106,7 +99,7 @@ class ezReactorLibEvent{
         try{
            call_user_func($func,$arg);
         }catch (Exception $ex){
-            echo $ex->getMessage()."\n";
+            ezLog($ex->getMessage());
         }
     }
 }

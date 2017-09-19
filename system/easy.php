@@ -1,25 +1,12 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: win10
- * Date: 2017/9/15
- * Time: 15:28
- */
 if(!defined('ROOT'))define('ROOT', __DIR__.'/..');
-class easy{
-	static public $pidsPath			= '/www/wwwroot/test/easyServer/system/pids';
-	static public $checkServerTime	= 1;
-	private $server					= 'ezServer';
-	private $serverData				= array();
-	public function __construct(){
 
-	}
-	public function setServer($server = 'ezServer'){
-		$this->server = $server;
-	}
-	public function setServerData($serverData){
-		$this->serverData = $serverData;
-	}
+class easy{
+	static public $pidsPath			= ROOT.'/system/pids';
+	static public $checkTime		= 1;
+	public $server					= 'ezServer';
+	public $serverData				= array();
+
 	static public function getPids(){
 		return json_decode(file_get_contents(self::$pidsPath),true);
 	}
@@ -68,40 +55,6 @@ class easy{
 			}
 		}
 	}
-	public function start(){
-		$this->back();
-		$this->forkServer();
-		$this->monitorServer();
-	}
-	private function back(){
-		$pid  = pcntl_fork();
-		if($pid > 0)exit();
-		file_put_contents(self::$pidsPath, null);
-		self::addPid('main',getmypid());
-	}
-	private function forkServer(){
-		$pid = pcntl_fork();
-		if($pid == 0) {
-			self::addPid('server',getmypid());
-			// 加载server文件
-			$serverPath = $this->server.'.php';
-			require $serverPath;
-			// 启动server
-			$server = new $this->server();
-			$server->setServerData($this->serverData);
-			$server->start();
-			exit();
-		}
-	}
-	private function monitorServer(){
-		while(true){
-			$pid = pcntl_wait($status, WNOHANG );
-			$this->checkServer($pid);
-			sleep(self::$checkServerTime);
-		}
-		exit();
-	}
-
 	static public function killPids($killPids){
 		$killList = $killPids;
 		while(count($killList)>0){
@@ -131,12 +84,56 @@ class easy{
     	}
     	return $childPids;
     }
-	// 检查状态
-	private function checkServer(){
+    static public function checkExitPid($exitPid = 0){
+		if($exitPid>0){
+        	$pidState = easy::getPidState($exitPid);
+        	if(!empty($pidState)){
+        		easy::delPid($exitPid);
+        		if($pidState == 'run')
+        			return true;
+        	}
+        }
+	}
+	public function start(){
+		$this->back();
+		$this->forkServer();
+		$this->monitorServer();
+	}
+	private function back(){
+		$pid  = pcntl_fork();
+		if($pid > 0)exit();
+		file_put_contents(self::$pidsPath, null);
+		self::addPid('main',getmypid());
+	}
+	private function forkServer(){
+		$pid = pcntl_fork();
+		if($pid == 0) {
+			self::addPid('server',getmypid());
+			// 加载server文件
+			$serverPath = $this->server.'.php';
+			require $serverPath;
+			// 启动server
+			$server = new $this->server();
+			$server->setServerData($this->serverData);
+			$server->start();
+			exit();
+		}
+	}
+	private function monitorServer(){
+		while(true){
+			$pid = pcntl_wait($status, WNOHANG );
+			$this->checkServer($pid);
+			sleep(self::$checkTime);
+		}
+		exit();
+	}
+	private function checkServer($exitPid){
 		$pids = self::getPids();
 		$mainStatus = $pids['main'][0]['state'];
 		if($mainStatus === 'run'){
 			// 正常运行
+			if(self::checkExitPid($exitPid))
+				$this->forkServer();
 		}else if($mainStatus === 'stop'){
 			// 关闭所有（包括self）
 			self::killPids(array_keys(self::getChilds($pids,'main')));
@@ -147,7 +144,6 @@ class easy{
 			self::killPids(array_keys(self::getChilds($pids,'main')));
 			self::updatePid(getmypid(),'run');
 			$this->forkServer();
-
 		}
 	}
 }

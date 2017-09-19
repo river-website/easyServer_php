@@ -2,6 +2,22 @@
 require 'ezReactorLibEvent.php';
 require 'ezReactorSelect.php';
 
+if (!function_exists('ezReactor')) {
+	function ezReactor(){
+		return ezReactor::getInterface();
+	}
+}
+if (!function_exists('ezReactorAdd')) {
+	function ezReactorAdd($fd, $status, $func,$arg = null){
+		return ezReactor::getInterface()->add($fd, $status, $func,$arg);
+	}
+}
+if (!function_exists('ezReactorDel')) {
+	function ezReactorDel($fd,$status){
+		return ezReactor::getInterface()->del($fd, $status);
+	}
+}
+
 // 事件分发类
 class ezReactor{
 
@@ -20,17 +36,12 @@ class ezReactor{
 	}
 	static public function getInterface(){
 		static $reactor;
-		if(empty($reactor)) {
-			$reactor = new ezReactor();
-		}
+		if(empty($reactor)) $reactor = new ezReactor();
 		return $reactor;
 	}
 	private function init(){
-		if(extension_loaded('libevent')){
-			$this->reactor = new ezReactorLibEvent();
-		}else{
-			$this->reactor = new ezReactorSelect();
-		}
+		if(extension_loaded('libevent')) $this->reactor = new ezReactorLibEvent();
+		else $this->reactor = new ezReactorSelect();
 	}
 	// 对外接口 增加一个监视资源，状态及事件处理
 	public function add($fd, $status, $func,$arg = null){

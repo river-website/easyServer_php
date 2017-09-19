@@ -7,7 +7,7 @@ if (!function_exists('ezDb')) {
 }
 if (!function_exists('ezDbExcute')) {
 	function ezDbExcute($sql, $func = null,$queEvent = false){
-		return ezDb()->excute($sql, $func, $queEvent);
+		return ezDbPool::getInterface()->excute($sql, $func, $queEvent);
 	}
 }
 

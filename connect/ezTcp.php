@@ -1,9 +1,9 @@
 <?php
 
 class ezTcp{
-	public $onMessage 		= null;
+	public $onMessage 			= null;
 
-	public $socket 			= null;
+	public $socket 				= null;
 	private $remote_address 	= null;
 	private $sendBuffer 		= null;
 	private $sendStatus 		= true;

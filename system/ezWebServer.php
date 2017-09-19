@@ -1,5 +1,4 @@
 <?php
-
 require ROOT.'/system/ezServer.php';
 require ROOT.'/library/ezDbPool.php';
 require ROOT.'/library/ezQueueEvent.php';
@@ -9,27 +8,22 @@ class ezWebServer {
 	private $host = '0.0.0.0:80';
 	private $serverRoot = array();
 	public function __construct(){
-		$server = ezServer::getInterface();
+		$server = ezServer();
 		$server->onMessage = array($this, 'onMessage');
 		$server->protocol = new ezHttp();
 		$server->onStart = array($this,'onStart');
 	}
 	public function setServerData($serverData){
-		ezServer::getInterface()->host = 'tcp://'.$serverData['host'];
-		foreach ($serverData['serverRoot'] as $value) {
-			$this->setWeb($value['webSite'],$value['path']);
-		}
-	}
-	// 设置域名和网站目录
-	public function setWeb($webSite,$path){
-		$this->serverRoot[$webSite] = $path;
+		ezServer()->host = 'tcp://'.$serverData['host'];
+		foreach ($serverData['serverRoot'] as $value) 
+			$this->serverRoot[$value['webSite']] = $value['path'];
 	}
 	public function onStart(){
-		ezDbPool::getInterface()->init();
-		ezQueueEvent::getInterface()->init();
+		ezDb()->init();
+		ezQueue()->init();
 	}
 	public function start(){
-	    ezServer::getInterface()->start();
+	    ezServer()->start();
     }
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
