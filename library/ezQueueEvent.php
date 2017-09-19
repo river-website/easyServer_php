@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: lhe
- * Date: 2017/7/16
- * Time: 18:06
- */
 
 if (!function_exists('ezQueue')) {
 	function ezQueue(){
@@ -25,7 +19,7 @@ if (!function_exists('ezQueueAdd')) {
 class ezQueueEvent{
 
     public $queueLockDir           = '/queueLok';
-    public $queueLockFile          = '/queueLockFile';
+    public $queueLockFile          = '/queueLockFile-$pid';
     public $queueEventTime         = 10;
 
     private $queList    			= array();
@@ -58,45 +52,42 @@ class ezQueueEvent{
         }
     }
     private function freeStatus(){
-        $this->queueLockDir = ezServer::getInterface()->runTimePath.$this->queueLockDir;
-        $this->queueLockFile =$this->queueLockDir.$this->queueLockFile;
+        $this->queueLockDir = ezServer()->runTimePath.$this->queueLockDir;
+        $this->queueLockFile = str_replace('$pid',getmypid(),$this->queueLockDir.$this->queueLockFile);
         if(!is_dir($this->queueLockDir))mkdir($this->queueLockDir);
-    	if(is_file($this->queueLockFile))
-        	unlink($this->queueLockFile);
+    	if(is_file($this->queueLockFile))unlink($this->queueLockFile);
     }
     public function loop(){
         if($this->count() == 0)return;
-        if(!$this->getStatus())
-            return;
-        ezServer::getInterface()->debugLog("queue loop com in");
+        if(!$this->getStatus())return;
+        ezDebugLog("queue loop com in");
         $pid = pcntl_fork();
         if($pid == 0) {
 			easy::addPid('queue',getmypid());
-			ezServer::getInterface()->processName = "ques process";
-			ezServer::getInterface()->pid = getmypid();
-			ezServer::getInterface()->outScreen = false;
-            ezDbPool::getInterface()->bakLinks();
-            ezDbPool::getInterface()->createSync();
+			ezServer()->processName = "ques process";
+			ezServer()->pid = getmypid();
+			ezServer()->outScreen = false;
+            ezDb()->bakLinks();
+            ezDb()->createSync();
             while(true){
                 $que = $this->get();
                 if (empty($que)) {
                     $this->freeStatus();
-                    ezServer::getInterface()->debugLog("ques process exit\n");
-					ezServer::getInterface()->delChildPid(getmypid());
+                    ezDebugLog("ques process exit\n");
+					ezServer()->delChildPid(getmypid());
                     posix_kill(getmypid(),SIGKILL);
-//                    exit();
                 };
                 if (empty($que[1])) continue;
                 try {
                     call_user_func_array($que[1], array($que[2]));
                 } catch (Exception $ex) {
-                    echo $ex;
+                    ezLog($ex->getMessage());
                 }
             }
         }else{
-            ezServer::getInterface()->pid -= count($this->queList);
+            ezServer()->pid -= count($this->queList);
             $this->freeQueList();
-			ezServer::getInterface()->addChildPid($pid);
+			ezServer()->addChildPid($pid);
         }
     }
 	public function add($func,$args=null){
@@ -115,13 +106,13 @@ class ezQueueEvent{
 	        ezServer()->pid = getmypid();
 	        ezServer()->outScreen = false;
 			ezServer()->log("start back task");
-            ezDbPool()->bakLinks();
-            ezDbPool()->createSync();
+            ezDb()->bakLinks();
+            ezDb()->createSync();
 	        call_user_func_array($func,array($args));
 			ezLog("back task exit");
             posix_kill(getmypid(),SIGKILL);
         }else{
-			ezServer::getInterface()->addChildPid($pid);
+			ezServer()->addChildPid($pid);
         }
     }
     private function get(){

@@ -14,13 +14,14 @@ if (!function_exists('ezDbExcute')) {
 class ezDbPool{
 	public $maxAsyncLinks 		= 0;
 	public $dbPoolTime			= 1;
-	public $dbConf				= array(
-		'host' => '127.0.0.1',
-		'user' => 'root',
-		'password' => 'root',
-		'dataBase' => 'yun',
-		'port' => 3306
-	);
+	public $connectFunc			= null;
+//	public $dbConf				= array(
+//		'host' => '127.0.0.1',
+//		'user' => 'root',
+//		'password' => 'root',
+//		'dataBase' => 'yun',
+//		'port' => 3306
+//	);
 
 	private $syncLink 			= null;
 	private $asyncLinks 		= array();
@@ -39,25 +40,27 @@ class ezDbPool{
 		return $dbPool;
 	}
 	public function init(){
-		$conf = $this->dbConf;
-        $maxAsyncLinks = $this->maxAsyncLinks;
-        $this->syncLink = $this->connectDB($conf);
-        ezServer::getInterface()->debugLog("sync link is: ".$this->linkToKey($this->syncLink));
+//		$conf = $this->dbConf;
+//        $maxAsyncLinks = $this->maxAsyncLinks;
+//        $this->syncLink = $this->connectDB($conf);
+//        ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
 		if($this->dbPoolTime==0)return;
-		for($i=0;$i<$maxAsyncLinks;$i++){
-			$con = $this->connectDB($conf);
-			$this->asyncLinks[] = $con;
-			$this->freeAsyncLink[] = $con;
-			ezServer::getInterface()->debugLog("async link is: ".$this->linkToKey($con));
-		}
-		ezReactor::getInterface()->add($this->dbPoolTime,ezReactor::eventTime, array($this,'loop'));
+//		for($i=0;$i<$maxAsyncLinks;$i++){
+//			$con = $this->connectDB($conf);
+//			$this->asyncLinks[] = $con;
+//			$this->freeAsyncLink[] = $con;
+//			ezDebugLog("async link is: ".$this->linkToKey($con));
+//		}
+		ezReactorAdd($this->dbPoolTime,ezReactor::eventTime, array($this,'loop'));
 	}
-	private function connectDB($conf){
-		$con = mysqli_connect($conf['host'], $conf['user'], $conf['password'], $conf['dataBase'], $conf['port']);
-		if (!$con)throw new Exception(mysqli_error($con));
-        mysqli_query($con,"set names 'utf8'");
-		return $con;
-	}
+//	private function connectDB($conf){
+//		$con = mysqli_connect($conf['host'], $conf['user'], $conf['password'], $conf['dataBase'], $conf['port']);
+//		if (!$con)throw new Exception(mysqli_error($con));
+//        mysqli_query($con,"set names 'utf8'");
+//		return $con;
+//	}
+
+	// if back queue process need do,should find a better way
 	public function bakLinks(){
         $this->bakLink[] = $this->syncLink;
         $this->bakLink[] = $this->asyncLinks;
@@ -71,31 +74,37 @@ class ezDbPool{
         $this->freeAsyncLink = null;
         $this->sqlList = null;
     }
-    public function createSync(){
-        $conf = $this->dbConf;
-        $this->syncLink = $this->connectDB($conf);
-        ezServer::getInterface()->debugLog("sync link is: ".$this->linkToKey($this->syncLink));
-    }
+//    public function createSync(){
+//        $conf = $this->dbConf;
+//        $this->syncLink = $this->connectDB($conf);
+//        ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));
+//    }
 	private function linkToKey($link){
 		return $link->thread_id;
 	}
 	public function excute($sql, $func = null,$queEvent = false){
 		if(!empty($func) || $queEvent){
-		    ezServer::getInterface()->pid++;
-			$con = ezServer::getInterface()->curConnect;
+			$con = ezServer()->curConnect;
 			if(!empty($func)) {
 				$con->setDelaySend();
 				$con->data['HTTP_CONNECTION'] = $_SERVER['HTTP_CONNECTION'];
 			}
 			$link = array_shift($this->freeAsyncLink);
-			if(empty($link))
+			if(empty($link) && count($this->asyncLinks) >= $this->maxAsyncLinks)
 				$this->sqlList[] = array($sql,$func,$con);
-			else{
+			else {
+				if (empty($link)) {
+					$link = call_user_func($this->connectFunc);
+					$this->asyncLinks[] = $link;
+					$this->freeAsyncLink[] = $link;
+					ezDebugLog("async link is: " . $this->linkToKey($link));
+				}
 				$linkKey = $this->linkToKey($link);
-				$ret = mysqli_query($link, $sql,MYSQLI_ASYNC);
-				$this->linkKeys[$linkKey] = array($func,$con);
+				$ret = mysqli_query($link, $sql, MYSQLI_ASYNC);
+				$this->linkKeys[$linkKey] = array($func, $con);
 			}
 		}else{
+			if(empty($this->syncLink)){$this->syncLink = call_user_func($this->connectFunc);ezDebugLog("sync link is: ".$this->linkToKey($this->syncLink));}
 			$row = mysqli_query($this->syncLink, $sql);
 			if(is_object($row))
 				return $row->fetch_all(MYSQLI_ASSOC);
@@ -119,9 +128,8 @@ class ezDbPool{
 			} elseif ($re < 1)
 				return;
 
-			ezServer::getInterface()->debugLog("read ready!");
+			ezDebugLog("read ready!");
 			foreach ($read as $link) {
-			    ezServer::getInterface()->pid--;
 				$sql_result = $link->reap_async_query();
 				if (is_object($sql_result))
 					$linkData = $sql_result->fetch_all(MYSQLI_ASSOC);
@@ -135,16 +143,15 @@ class ezDbPool{
 					unset($this->linkKeys[$linkKey]);
 				}
 				else {
-				    ezServer::getInterface()->pid++;
-					ezServer::getInterface()->debugLog("do sql que");
+					ezDebugLog("do sql que");
 					mysqli_query($link, $sqlInfo[0], MYSQLI_ASYNC);
 					$this->linkKeys[$linkKey] = array($sqlInfo[1], $sqlInfo[2]);
 				}
 				$func = $linkInfo[0];
 				if(empty($func))continue;
 				$socketCon = $linkInfo[1];
-				ezServer::getInterface()->debugLog($socketCon->getSocket());
-				ezServer::getInterface()->debugLog($linkKey);
+				ezDebugLog($socketCon->getSocket());
+				ezDebugLog($linkKey);
 				$socketCon->setImmedSend();
 				ob_start();
 				try {
@@ -158,7 +165,7 @@ class ezDbPool{
 				} else {
 					$socketCon->close($contents);
 				}
-				ezServer::getInterface()->debugLog("close");
+				ezDebugLog("close");
 			}
 			return;
 		}

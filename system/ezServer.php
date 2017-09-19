@@ -42,6 +42,7 @@ class ezServer{
     private $data				= array();
     private $errorIgnorePaths	= array();
     public $processName	    	= 'server process';
+    public $curConnect			= null;
     private $serverSocket 		= null;
 	public $outScreen			= false;
 
