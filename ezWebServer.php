@@ -1,8 +1,8 @@
 <?php
 define('ROOT',__DIR__);
 require 'system/ezServer.php';
-require 'library/ezDbPool.php';
-require 'library/ezQueueEvent.php';
+//require 'library/ezDbPool.php';
+//require 'library/ezQueueEvent.php';
 require 'protocol/ezHttp.php';
 
 class ezWebServer {
@@ -20,16 +20,19 @@ class ezWebServer {
 		$this->serverRoot[$webSite] = $path;
 	}
 	public function onStart(){
-		ezDbPool::getInterface()->init();
-		ezQueueEvent::getInterface()->init();
+		//ezDbPool::getInterface()->init();
+		//ezQueueEvent::getInterface()->init();
 	}
 	public function start(){
 	    ezServer::getInterface()->start();
     }
 	// 处理从tcp来的数据
 	public function onMessage($connection,$data){
+		$connection->close('comin');
+		return;
 		// REQUEST_URI.
 		$workerman_url_info = parse_url($_SERVER['REQUEST_URI']);
+		ezServer::getInterface()->debugLog(print_r($workerman_url_info,true));
 		if (!$workerman_url_info) {
 			ezHttp::header('HTTP/1.1 400 Bad Request');
 			$connection->close('<h1>400 Bad Request</h1>');

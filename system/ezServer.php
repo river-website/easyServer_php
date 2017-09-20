@@ -2,7 +2,6 @@
 date_default_timezone_set("PRC");
 if(!defined('ROOT'))define('ROOT', __DIR__.'/..');
 require ROOT.'/connect/ezTcp.php';
-require ROOT.'/connect/ezUdp.php';
 require ROOT.'/reactor/ezReactor.php';
 
 class ezServer{
